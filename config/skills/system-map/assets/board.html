@@ -1,0 +1,946 @@
+<title>System Map</title>
+<script id="model" type="application/json">/*__MODEL__*/</script>
+<style>
+:root{
+  --bg:#cdc8a0; --panel:#d5d1ad; --inset:#c4bf95;
+  --ink:#1c1c17; --dim:#5b5a48; --faint:#85836c; --rule:#9a9678;
+  --top:#dcd8b7; --lft:#b6b189; --rgt:#c8c49d;
+  --flow:#22221a; --payload:#22221a; --ghost:#a8a488;
+  --grid:#b9b58f; --sel:#1c1c17; --selink:#e8e4c4;
+  --added:#2c6b3c; --removed:#8c3030; --modified:#8a6512; --unconf:#8a6512;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+
+    --bg:#0d1015; --panel:#13171e; --inset:#191e26;
+    --ink:#dde3ea; --dim:#8b95a3; --faint:#5c6573; --rule:#28303a;
+    --top:#2c343f; --lft:#171c24; --rgt:#222a34;
+    --flow:#7d8b9b; --payload:#4c8dff; --ghost:#2b323c;
+    --grid:#1d232b; --sel:#dde3ea; --selink:#0d1015;
+    --added:#4ea866; --removed:#e06a6a; --modified:#d9a13a; --unconf:#d9a13a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1015; --panel:#13171e; --inset:#191e26;
+  --ink:#dde3ea; --dim:#8b95a3; --faint:#5c6573; --rule:#28303a;
+  --top:#2c343f; --lft:#171c24; --rgt:#222a34;
+  --flow:#7d8b9b; --payload:#4c8dff; --ghost:#2b323c;
+  --grid:#1d232b; --sel:#dde3ea; --selink:#0d1015;
+  --added:#4ea866; --removed:#e06a6a; --modified:#d9a13a; --unconf:#d9a13a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--mono);
+  font-size:12px;line-height:1.45;overflow-x:hidden}
+#app{display:flex;flex-direction:column;min-height:100vh;height:100vh}
+
+/* header */
+.strip{display:flex;align-items:stretch;border-bottom:1px solid var(--rule);
+  flex:0 0 auto;overflow-x:auto}
+.cell{padding:7px 14px;border-right:1px solid var(--rule);white-space:nowrap;flex:0 0 auto}
+.cell .k{font-size:9px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+.cell .v{font-size:12px;color:var(--ink)}
+.cell.repo .v{font-size:14px;letter-spacing:.02em}
+.ctl{margin-left:auto;display:flex;gap:6px;padding:7px 12px;align-items:center;
+  border-left:1px solid var(--rule);flex:0 0 auto}
+button{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  background:transparent;color:var(--ink);border:1px solid var(--rule);
+  padding:5px 9px;cursor:pointer}
+button:hover{background:var(--inset)}
+button[aria-pressed="true"],button.on{background:var(--sel);color:var(--selink);border-color:var(--sel)}
+button[disabled]{opacity:.35;cursor:default}
+
+/* body */
+main{display:flex;flex:1 1 auto;min-height:0}
+aside{flex:0 0 auto;overflow-y:auto;overflow-x:hidden;background:var(--panel)}
+#rail{width:206px;border-right:1px solid var(--rule);padding:10px 0 24px}
+#panel{width:326px;border-left:1px solid var(--rule);display:flex;flex-direction:column}
+
+.gl{font-size:9px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;
+  padding:14px 12px 5px}
+.filter{margin:0 12px 8px;width:calc(100% - 24px);background:var(--inset);color:var(--ink);
+  border:1px solid var(--rule);padding:5px 7px;font-family:var(--mono);font-size:11px}
+.item{display:flex;gap:7px;align-items:center;width:calc(100% - 24px);margin:0 12px 3px;
+  border:1px solid var(--rule);background:transparent;padding:5px 7px;cursor:pointer;
+  text-align:left;text-transform:none;letter-spacing:0;font-size:11px}
+.item:hover{background:var(--inset)}
+.item.sel{background:var(--sel);color:var(--selink);border-color:var(--sel)}
+.item .code{font-size:9px;color:var(--faint);width:16px;flex:0 0 auto}
+.item.sel .code{color:var(--selink)}
+.item .nm{flex:1 1 auto;line-height:1.25}
+.item .ct{font-size:9px;color:var(--faint);flex:0 0 auto}
+.item.sel .ct{color:var(--selink)}
+.item.nest{margin-left:24px;width:calc(100% - 36px)}
+.item.d-added{border-left:3px solid var(--added)}
+.item.d-removed{border-left:3px solid var(--removed)}
+.item.d-modified{border-left:3px solid var(--modified)}
+.item.off{opacity:.4}
+
+/* stage */
+#stage{flex:1 1 auto;position:relative;min-width:0;overflow:hidden}
+#board{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#board.drag{cursor:grabbing}
+.ovl{position:absolute;font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);pointer-events:none}
+#crumb{top:10px;left:14px}
+#crumb b{color:var(--ink);font-weight:400;letter-spacing:.02em;text-transform:none;font-size:12px}
+#live{top:10px;right:14px;display:flex;gap:6px;align-items:center}
+#live .dot{width:6px;height:6px;background:var(--payload);border-radius:50%}
+#zoom{position:absolute;top:34px;right:12px;display:flex;flex-direction:column;gap:4px}
+#zoom button{width:22px;height:22px;padding:0;font-size:12px;background:var(--panel)}
+#legend{bottom:26px;left:14px;display:flex;gap:16px;align-items:center;letter-spacing:.1em}
+#legend i{display:inline-block;width:22px;height:0;border-top:1px solid var(--flow);
+  vertical-align:middle;margin-right:5px}
+#legend i.r{border-top-style:dashed}
+#legend i.f{border-top-style:dotted}
+#legend i.p{width:7px;height:7px;border:0;background:var(--payload);
+  transform:rotate(45deg);margin-right:7px}
+#keys{bottom:8px;left:14px;letter-spacing:.1em}
+#tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--rule);
+  padding:4px 8px;font-size:11px;max-width:250px;display:none;z-index:5}
+
+/* panel */
+.tabs{display:flex;border-bottom:1px solid var(--rule);flex:0 0 auto}
+.tabs button{flex:1 1 0;border:0;border-right:1px solid var(--rule);padding:8px 6px}
+.tabs button:last-child{border-right:0}
+#pbody{padding:14px;overflow-y:auto;flex:1 1 auto}
+.eyebrow{font-size:9px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;
+  margin:0 0 4px;padding-bottom:4px;border-bottom:1px solid var(--rule)}
+.eyebrow.plain{border-bottom:0;padding-bottom:0;margin-top:18px}
+h1{font-size:17px;font-weight:400;letter-spacing:.01em;margin:2px 0 3px;line-height:1.2}
+h2{font-size:14px;font-weight:400;margin:2px 0 8px;line-height:1.25}
+.sub{color:var(--dim);font-size:11px;margin:0 0 14px}
+#pbody p{margin:0 0 10px;color:var(--dim)}
+#pbody p.lead{color:var(--ink)}
+#pbody strong{background:var(--sel);color:var(--selink);
+  padding:0 3px;font-weight:400}
+code,.chip{font-family:var(--mono);background:var(--inset);border:1px solid var(--rule);
+  padding:1px 5px;font-size:11px;color:var(--ink);display:inline-block;
+  margin:0 4px 4px 0;word-break:break-all}
+pre{background:var(--inset);border:1px solid var(--rule);padding:9px;margin:6px 0 10px;
+  font-size:11px;overflow-x:auto;color:var(--ink);white-space:pre}
+.badge{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:2px 6px;
+  border:1px solid currentColor;display:inline-block;margin:0 4px 6px 0}
+.b-added{color:var(--added)} .b-removed{color:var(--removed)}
+.b-modified{color:var(--modified)} .b-unchanged{color:var(--faint)}
+.b-doc{color:var(--unconf)}
+.warn{border-left:3px solid var(--modified);padding-left:9px;margin:0 0 12px}
+.warn .eyebrow{border-bottom:0;padding-bottom:0;color:var(--modified)}
+#pfoot{border-top:1px solid var(--rule);padding:9px 14px;flex:0 0 auto;display:flex;gap:6px}
+.empty{color:var(--faint);font-style:normal}
+@media(max-width:900px){
+  main{flex-direction:column}
+  #rail,#panel{width:100%;max-height:34vh;border:0;border-top:1px solid var(--rule)}
+  #stage{min-height:52vh}
+}
+</style>
+
+<div id="app">
+  <div class="strip" id="strip"></div>
+  <main>
+    <aside id="rail"></aside>
+    <section id="stage">
+      <svg id="board"></svg>
+      <div class="ovl" id="crumb"></div>
+      <div class="ovl" id="live"></div>
+      <div id="zoom">
+        <button id="zin" title="zoom in">+</button>
+        <button id="zout" title="zoom out">&minus;</button>
+      </div>
+      <div class="ovl" id="legend"></div>
+      <div class="ovl" id="keys">&rarr; go inside &middot; &larr; come back out &middot;
+        &darr;&uarr; move &middot; hover to read &middot; drag to pan &middot; scroll to zoom</div>
+      <div id="tip"></div>
+    </section>
+    <aside id="panel">
+      <div class="tabs">
+        <button id="t-does" class="on">what it does</button>
+        <button id="t-built">how it's built</button>
+      </div>
+      <div id="pbody"></div>
+      <div id="pfoot"></div>
+    </aside>
+  </main>
+</div>
+
+<script>
+"use strict";
+const NS = "http://www.w3.org/2000/svg";
+const RAW = document.getElementById("model").textContent;
+let MODEL;
+try { MODEL = JSON.parse(RAW); }
+catch (e) {
+  document.getElementById("pbody").textContent = "Model failed to parse: " + e.message;
+  MODEL = { repo:{name:"(no model)"}, groups:[], nodes:[], edges:[], payloads:[] };
+}
+
+/* ---------- geometry ---------- */
+const TW = 128, TH = 74;
+const iso = (gx, gy) => ({ x:(gx - gy) * TW/2, y:(gx + gy) * TH/2 });
+
+/* Footprints stay well inside their cell so the ground stays visible between
+   neighbours &mdash; edges are routed on the ground plane and would otherwise be
+   covered by the buildings they connect. */
+const SHAPE = {
+  flat:  { e:0.40, h:12,  plates:1 },
+  slab:  { e:0.38, h:30,  plates:1 },
+  cube:  { e:0.32, h:58,  plates:1 },
+  stack: { e:0.40, h:54,  plates:5 },
+  tower: { e:0.20, h:120, plates:1 },
+};
+const shapeOf = n => SHAPE[n.shape] || SHAPE.cube;
+
+/* ---------- state ---------- */
+const state = {
+  stack: [],            // drill-down breadcrumb of {id,label}
+  board: null,          // active board object
+  selNode: null,
+  selEdge: null,
+  tab: "does",
+  paused: false,
+  step: -1,             // flow-mode trace cursor
+  tx:0, ty:0, sc:1,
+  t0: 0,
+};
+
+function boardById(id){
+  const b = (MODEL.boards || {})[id];
+  if (!b) return null;
+  return normalize(b);
+}
+function normalize(b){
+  return {
+    id: b.id || "root",
+    groups: b.groups || [],
+    nodes: b.nodes || [],
+    edges: (b.edges || []).map((e,i) => Object.assign({ _i:i }, e)),
+    payloads: b.payloads || [],
+    steps: b.steps || [],
+    explainer: b.explainer || MODEL.explainer || null,
+  };
+}
+const ROOT = normalize(MODEL);
+state.board = ROOT;
+state.stack = [{ id:"root", label:(MODEL.repo && MODEL.repo.name) || "root" }];
+
+const byId = () => {
+  const m = new Map();
+  state.board.nodes.forEach(n => m.set(n.id, n));
+  return m;
+};
+const payloadById = id => state.board.payloads.find(p => p.id === id)
+  || (MODEL.payloads || []).find(p => p.id === id) || null;
+const REPOS = new Map((MODEL.repos || []).map(r => [r.id, r]));
+const unconfirmed = e => e.source === "doc";
+const TRANSPORT_TAG = { queue:"Q", http:"H", stream:"S", fs:"F", call:"", import:"" };
+
+/* ---------- text helpers ---------- */
+const esc = s => String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function inline(s){
+  return esc(s)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+function md(s){
+  if (!s) return "";
+  return String(s).split(/\n{2,}/).map(p =>
+    "<p>" + inline(p).replace(/\n/g,"<br>") + "</p>").join("");
+}
+
+/* ---------- header ---------- */
+function drawStrip(){
+  const strip = document.getElementById("strip");
+  const r = MODEL.repo || {};
+  let h = '<div class="cell repo"><div class="k">repository</div>' +
+          '<div class="v">' + esc(r.name || "") + '</div>' +
+          '<div class="k">' + esc(r.ref || "") + '</div></div>';
+  (MODEL.stats || []).forEach(s => {
+    h += '<div class="cell"><div class="k">' + esc(s.label) + '</div>' +
+         '<div class="v">' + esc(s.value) + '</div></div>';
+  });
+  strip.innerHTML = h;
+
+  const ctl = document.createElement("div");
+  ctl.className = "ctl";
+  const mk = (id, label) => {
+    const b = document.createElement("button");
+    b.id = id; b.textContent = label; ctl.appendChild(b); return b;
+  };
+  const pause = mk("bpause", "pause flow");
+  const step  = mk("bstep",  "trace one step");
+  const reset = mk("breset", "reset view");
+  strip.appendChild(ctl);
+
+  pause.onclick = () => {
+    state.paused = !state.paused;
+    pause.textContent = state.paused ? "resume the flow" : "pause flow";
+    pause.classList.toggle("on", state.paused);
+  };
+  step.onclick = () => {
+    const seq = traceSeq();
+    if (!seq.length) return;
+    state.paused = true;
+    pause.textContent = "resume the flow";
+    pause.classList.add("on");
+    state.step = (state.step + 1) % seq.length;
+    const e = seq[state.step];
+    selectEdge(e);
+  };
+  reset.onclick = () => { fit(); state.step = -1; };
+}
+
+function traceSeq(){
+  const b = state.board;
+  if (b.steps && b.steps.length) {
+    return b.steps.map(s => b.edges[s.edge]).filter(Boolean);
+  }
+  return b.edges;
+}
+
+/* ---------- rail ---------- */
+function drawRail(){
+  const rail = document.getElementById("rail");
+  const b = state.board;
+  const deg = new Map();
+  b.edges.forEach(e => {
+    deg.set(e.from, (deg.get(e.from)||0) + 1);
+    deg.set(e.to,   (deg.get(e.to)||0) + 1);
+  });
+  const q = (rail.querySelector(".filter") || {}).value || "";
+
+  rail.innerHTML = "";
+  const f = document.createElement("input");
+  f.className = "filter";
+  f.placeholder = "filter modules";
+  f.value = q;
+  f.oninput = () => drawRail();
+  const head = document.createElement("div");
+  head.className = "gl";
+  head.textContent = "the system";
+  rail.appendChild(head);
+  rail.appendChild(f);
+
+  const needle = q.trim().toLowerCase();
+  const groups = b.groups.length ? b.groups : [{ id:null, label:"modules" }];
+  groups.forEach(g => {
+    const ns = b.nodes.filter(n => (n.group || null) === (g.id || null))
+      .filter(n => !needle || (n.label + " " + (n.code||"") + " " +
+        (n.files||[]).join(" ")).toLowerCase().includes(needle));
+    if (!ns.length) return;
+    const gl = document.createElement("div");
+    gl.className = "gl";
+    gl.textContent = g.label;
+    rail.appendChild(gl);
+    ns.forEach(n => {
+      const it = document.createElement("button");
+      it.className = "item";
+      if (state.selNode === n.id) it.classList.add("sel");
+      if (n.delta) it.classList.add("d-" + n.delta);
+      if (MODEL.mode === "change" && (!n.delta || n.delta === "unchanged")) it.classList.add("off");
+      if (n.nested) it.classList.add("nest");
+      it.innerHTML = '<span class="code">' + esc(n.code || "") + '</span>' +
+        '<span class="nm">' + esc(n.label) + '</span>' +
+        '<span class="ct">' + (deg.get(n.id) || 0) + '</span>';
+      it.onclick = () => selectNode(n.id);
+      rail.appendChild(it);
+    });
+  });
+  if (!rail.querySelector(".item")) {
+    const e = document.createElement("div");
+    e.className = "gl";
+    e.textContent = "no match";
+    rail.appendChild(e);
+  }
+}
+
+/* ---------- board ---------- */
+const svg = document.getElementById("board");
+let root;   // <g> holding the pannable scene
+
+function el(tag, attrs, parent){
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+const pts = a => a.map(p => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ");
+
+function anchor(n){
+  const p = iso(n.grid[0], n.grid[1]);
+  return p;
+}
+
+function routeOf(e, map){
+  const a = map.get(e.from), b = map.get(e.to);
+  if (!a || !b) return null;
+  const [ax, ay] = a.grid, [bx, by] = b.grid;
+  const g = [[ax, ay]];
+  if (ax !== bx && ay !== by) g.push([bx, ay]);
+  g.push([bx, by]);
+  /* Cell centres sit under the buildings, so pull both ends clear of them.
+     Without this the arrowhead is invisible and the path loses its direction. */
+  return trim(g.map(([x, y]) => iso(x, y)),
+              shapeOf(a).e * TW * 0.95, shapeOf(b).e * TW * 1.05);
+}
+
+function trim(p, head, tail){
+  const out = p.map(q => ({ x:q.x, y:q.y }));
+  const pull = (i, j, d) => {
+    const L = Math.hypot(out[j].x - out[i].x, out[j].y - out[i].y);
+    if (L <= d + 4) return false;
+    const k = d / L;
+    out[i] = { x: out[i].x + (out[j].x - out[i].x) * k,
+               y: out[i].y + (out[j].y - out[i].y) * k };
+    return true;
+  };
+  pull(0, 1, head);
+  pull(out.length - 1, out.length - 2, tail);
+  return out;
+}
+function plLen(p){
+  let L = 0, seg = [];
+  for (let i = 1; i < p.length; i++) {
+    const d = Math.hypot(p[i].x - p[i-1].x, p[i].y - p[i-1].y);
+    seg.push(d); L += d;
+  }
+  return { L, seg };
+}
+function atT(p, t){
+  const { L, seg } = plLen(p);
+  if (!L) return p[0];
+  let d = t * L;
+  for (let i = 0; i < seg.length; i++) {
+    if (d <= seg[i]) {
+      const k = seg[i] ? d / seg[i] : 0;
+      return { x: p[i].x + (p[i+1].x - p[i].x) * k,
+               y: p[i].y + (p[i+1].y - p[i].y) * k };
+    }
+    d -= seg[i];
+  }
+  return p[p.length - 1];
+}
+
+const dash = k => k === "retry" ? "6 4" : k === "feedback" ? "1 5" : null;
+const dimmed = n => MODEL.mode === "change" && (!n.delta || n.delta === "unchanged");
+const deltaColor = d => d === "added" ? "var(--added)" : d === "removed" ? "var(--removed)"
+  : d === "modified" ? "var(--modified)" : null;
+
+let dots = [];   // live payload markers, rebuilt on draw
+
+function drawBoard(){
+  svg.innerHTML = "";
+  root = el("g", {}, svg);
+  const map = byId();
+  const b = state.board;
+
+  /* ground grid */
+  const xs = b.nodes.map(n => n.grid[0]), ys = b.nodes.map(n => n.grid[1]);
+  const x0 = Math.min(...xs, 0) - 1, x1 = Math.max(...xs, 0) + 1;
+  const y0 = Math.min(...ys, 0) - 1, y1 = Math.max(...ys, 0) + 1;
+  const gg = el("g", {}, root);
+  for (let x = x0; x <= x1; x++) {
+    const a = iso(x - 0.5, y0 - 0.5), c = iso(x - 0.5, y1 - 0.5);
+    el("line", { x1:a.x, y1:a.y, x2:c.x, y2:c.y, stroke:"var(--grid)",
+      "stroke-width":1 }, gg);
+  }
+  for (let y = y0; y <= y1; y++) {
+    const a = iso(x0 - 0.5, y - 0.5), c = iso(x1 - 0.5, y - 0.5);
+    el("line", { x1:a.x, y1:a.y, x2:c.x, y2:c.y, stroke:"var(--grid)",
+      "stroke-width":1 }, gg);
+  }
+
+  /* edges on the ground plane */
+  const eg = el("g", {}, root);
+  const seq = traceSeq();
+  const mixedTransport = new Set(b.edges.map(e => e.transport)
+    .filter(Boolean)).size > 1;
+  b.edges.forEach(e => {
+    const p = routeOf(e, map);
+    if (!p) return;
+    e._route = p;
+    const on = state.selEdge === e._i;
+    const rel = state.selNode && (e.from === state.selNode || e.to === state.selNode);
+    const dc = deltaColor(e.delta);
+    const g = el("g", { "data-edge":e._i, style:"cursor:pointer" }, eg);
+    el("polyline", { points:pts(p), fill:"none", stroke:"transparent",
+      "stroke-width":14 }, g);
+    const line = el("polyline", { points:pts(p), fill:"none",
+      stroke: dc || (unconfirmed(e) ? "var(--unconf)"
+                    : on || rel ? "var(--ink)" : "var(--flow)"),
+      "stroke-width": on ? 2.6 : rel ? 2 : 1.5,
+      opacity: MODEL.mode === "change" && !dc ? .3
+             : (state.selNode && !rel ? .3 : 1) }, g);
+    if (dash(e.kind)) line.setAttribute("stroke-dasharray", dash(e.kind));
+    /* arrow head at the destination */
+    const tail = atT(p, .93), head = p[p.length - 1];
+    const ang = Math.atan2(head.y - tail.y, head.x - tail.x);
+    const w = 5, len = 11;
+    el("polygon", { points: pts([
+        head,
+        { x: head.x - len*Math.cos(ang) + w*Math.sin(ang),
+          y: head.y - len*Math.sin(ang) - w*Math.cos(ang) },
+        { x: head.x - len*Math.cos(ang) - w*Math.sin(ang),
+          y: head.y - len*Math.sin(ang) + w*Math.cos(ang) }]),
+      fill: line.getAttribute("stroke"),
+      opacity: line.getAttribute("opacity") }, g);
+    const tag = mixedTransport ? (TRANSPORT_TAG[e.transport] || "") : "";
+    if (tag || unconfirmed(e)) {
+      const mid = atT(p, .5);
+      el("text", { x:mid.x, y:mid.y - 5, "text-anchor":"middle",
+        fill: unconfirmed(e) ? "var(--unconf)" : "var(--faint)",
+        "font-size":"9", "font-family":"var(--mono)",
+        style:"pointer-events:none;letter-spacing:.1em" }, g)
+        .textContent = (unconfirmed(e) ? "?" : "") + tag;
+    }
+    g.onclick = ev => { ev.stopPropagation(); selectEdge(e); };
+    g.onmouseenter = ev => tipOn(ev, edgeTip(e, map));
+    g.onmousemove = ev => tipMove(ev);
+    g.onmouseleave = tipOff;
+  });
+
+  /* buildings, painted back to front */
+  const bg = el("g", {}, root);
+  const order = b.nodes.slice().sort((p, q) =>
+    (p.grid[0] + p.grid[1]) - (q.grid[0] + q.grid[1]));
+  order.forEach(n => building(n, bg));
+
+  /* payload markers ride above everything so they stay clickable */
+  const pg = el("g", {}, root);
+  dots = [];
+  b.edges.forEach(e => {
+    if (!e.payload || !e._route) return;
+    if (b.steps && b.steps.length && !seq.includes(e)) return;
+    const d = el("polygon", { points:"0,-4.5 4.5,0 0,4.5 -4.5,0",
+      fill:"var(--payload)", style:"cursor:pointer" }, pg);
+    d.onclick = ev => { ev.stopPropagation(); selectEdge(e); };
+    d.onmouseenter = ev => tipOn(ev, "payload &middot; " + esc(e.payload));
+    d.onmousemove = tipMove;
+    d.onmouseleave = tipOff;
+    dots.push({ e, node:d, phase: (dots.length * 0.37) % 1 });
+  });
+
+  drawLive();
+  drawLegend();
+}
+
+function building(n, parent){
+  const s = shapeOf(n);
+  const c = iso(n.grid[0], n.grid[1]);
+  const e = s.e;
+  const g0 = n.grid[0], g1 = n.grid[1];
+  const P = (dx, dy) => { const p = iso(g0 + dx, g1 + dy); return { x:p.x, y:p.y }; };
+  const base = { t:P(-e,-e), r:P(e,-e), b:P(e,e), l:P(-e,e) };
+  const up = (p, h) => ({ x:p.x, y:p.y - h });
+
+  const sel = state.selNode === n.id;
+  const dc = deltaColor(n.delta);
+  const off = dimmed(n) || (state.selNode && !sel && !adjacent(n.id));
+  const g = el("g", { "data-node":n.id, style:"cursor:pointer",
+    opacity: off ? .45 : 1 }, parent);
+
+  const stroke = dc || (sel ? "var(--sel)" : "var(--ink)");
+  const sw = sel ? 2 : 1;
+  const plate = (yBase, h) => {
+    const B = { t:up(base.t, yBase), r:up(base.r, yBase),
+                b:up(base.b, yBase), l:up(base.l, yBase) };
+    const R = { t:up(B.t, h), r:up(B.r, h), b:up(B.b, h), l:up(B.l, h) };
+    el("polygon", { points:pts([B.l, B.b, R.b, R.l]), fill:"var(--lft)",
+      stroke, "stroke-width":sw }, g);
+    el("polygon", { points:pts([B.b, B.r, R.r, R.b]), fill:"var(--rgt)",
+      stroke, "stroke-width":sw }, g);
+    el("polygon", { points:pts([R.t, R.r, R.b, R.l]), fill:"var(--top)",
+      stroke, "stroke-width":sw }, g);
+    return R;
+  };
+
+  let roof;
+  if (s.plates > 1) {
+    const ph = s.h / (s.plates * 1.7);
+    const gap = s.h / s.plates - ph;
+    for (let i = 0; i < s.plates; i++) roof = plate(i * (ph + gap), ph);
+  } else {
+    roof = plate(0, s.h);
+  }
+
+  /* code label on the roof */
+  if (n.code) {
+    const cx = (roof.t.x + roof.b.x) / 2, cy = (roof.t.y + roof.b.y) / 2;
+    el("text", { x:cx, y:cy + 3.5, "text-anchor":"middle",
+      fill:"var(--ink)", "font-size":"10", "font-family":"var(--mono)",
+      style:"pointer-events:none;letter-spacing:.08em" }, g).textContent = n.code;
+  }
+  if (n.children) {
+    const cx = base.b.x, cy = base.b.y + 11;
+    el("text", { x:cx, y:cy, "text-anchor":"middle", fill:"var(--faint)",
+      "font-size":"9", "font-family":"var(--mono)",
+      style:"pointer-events:none" }, g).textContent = "\u2192";
+  }
+
+  g.onclick = ev => { ev.stopPropagation(); selectNode(n.id); };
+  g.ondblclick = ev => { ev.stopPropagation(); if (n.children) goInside(n); };
+  g.onmouseenter = ev => tipOn(ev, "<b>" + esc(n.label) + "</b><br>" +
+    esc(n.purpose || ""));
+  g.onmousemove = tipMove;
+  g.onmouseleave = tipOff;
+}
+
+function adjacent(id){
+  if (!state.selNode) return true;
+  return state.board.edges.some(e =>
+    (e.from === state.selNode && e.to === id) ||
+    (e.to === state.selNode && e.from === id));
+}
+
+function drawLive(){
+  const n = dots.length;
+  document.getElementById("live").innerHTML = n
+    ? '<span class="dot"></span> payloads in motion'
+    : "";
+}
+function drawLegend(){
+  const kinds = new Set(state.board.edges.map(e => e.kind));
+  let h = '<span><i></i>flow</span>';
+  if (kinds.has("retry")) h += '<span><i class="r"></i>retry</span>';
+  if (kinds.has("feedback")) h += '<span><i class="f"></i>feedback</span>';
+  if (dots.length) h += '<span><i class="p"></i>payload</span>';
+  if (state.board.edges.some(unconfirmed))
+    h += '<span style="color:var(--unconf)">? unconfirmed</span>';
+  const tr = [...new Set(state.board.edges.map(e => e.transport).filter(Boolean))];
+  if (tr.length > 1) h += "<span>" + tr.map(t =>
+    (TRANSPORT_TAG[t] ? TRANSPORT_TAG[t] + " " : "") + t).join(" &middot; ") + "</span>";
+  if (MODEL.mode === "change") {
+    h += '<span style="color:var(--added)">&#9632; added</span>' +
+         '<span style="color:var(--modified)">&#9632; modified</span>' +
+         '<span style="color:var(--removed)">&#9632; removed</span>';
+  }
+  document.getElementById("legend").innerHTML = h;
+}
+
+/* ---------- tooltip ---------- */
+const tip = document.getElementById("tip");
+function tipOn(ev, html){ tip.innerHTML = html; tip.style.display = "block"; tipMove(ev); }
+function tipMove(ev){
+  const r = document.getElementById("stage").getBoundingClientRect();
+  let x = ev.clientX - r.left + 14, y = ev.clientY - r.top + 12;
+  if (x + tip.offsetWidth > r.width - 8) x = r.width - tip.offsetWidth - 8;
+  if (y + tip.offsetHeight > r.height - 8) y = ev.clientY - r.top - tip.offsetHeight - 10;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function tipOff(){ tip.style.display = "none"; }
+function edgeTip(e, map){
+  const a = map.get(e.from), b = map.get(e.to);
+  return "<b>" + esc(a ? a.label : e.from) + " &rarr; " + esc(b ? b.label : e.to) +
+    "</b><br>" + esc(e.transport || e.kind) +
+    (unconfirmed(e) ? " &middot; unconfirmed" : "") +
+    (e.payload ? " &middot; " + esc(e.payload) : "");
+}
+
+/* ---------- inspector ---------- */
+function fileChips(files){
+  return (files || []).map(f => '<span class="chip">' + esc(f) + "</span>").join("");
+}
+function drawPanel(){
+  const body = document.getElementById("pbody");
+  const foot = document.getElementById("pfoot");
+  const map = byId();
+  foot.innerHTML = "";
+
+  if (state.selEdge != null) {
+    const e = state.board.edges[state.selEdge];
+    if (e) {
+      const a = map.get(e.from), b = map.get(e.to);
+      const p = e.payload ? payloadById(e.payload) : null;
+      let h = '<div class="eyebrow">selected path</div>' +
+        "<h2>" + esc(a ? a.label : e.from) + " &rarr; " +
+        esc(b ? b.label : e.to) + "</h2>";
+      h += '<div class="badge">' + esc(e.kind) + "</div>";
+      if (e.transport) h += '<div class="badge">' + esc(e.transport) + "</div>";
+      if (e.delta) h += '<div class="badge b-' + esc(e.delta) + '">' + esc(e.delta) + "</div>";
+      if (unconfirmed(e)) h += '<div class="badge b-doc">asserted by docs</div>';
+      if (e.note) h += md(e.note);
+      if (unconfirmed(e)) {
+        h += '<div class="warn"><div class="eyebrow">not confirmed in code</div>' +
+          "<p>A seeding document claims this path. Nothing in the code was found " +
+          "to prove it. Treat it as a question, not a fact.</p></div>";
+      }
+      h += '<div class="eyebrow plain">evidence</div>' + fileChips([e.evidence]);
+      if (p) {
+        h += '<div class="eyebrow plain">payload</div>' +
+          '<div class="badge">' + esc(p.origin || "quoted") + "</div>" +
+          "<h2>" + esc(p.label) + "</h2>" +
+          "<pre>" + esc(p.snippet) + "</pre>" +
+          '<div class="eyebrow plain">quoted from</div>' + fileChips([p.source]);
+      } else {
+        h += '<div class="eyebrow plain">payload</div>' +
+          '<p class="empty">No real payload was found for this path.</p>';
+      }
+      body.innerHTML = h;
+      addFoot(foot, [["clear", () => { state.selEdge = null; render(); }]]);
+      return;
+    }
+  }
+
+  if (state.selNode) {
+    const n = map.get(state.selNode);
+    if (n) {
+      const ins = state.board.edges.filter(e => e.to === n.id);
+      const outs = state.board.edges.filter(e => e.from === n.id);
+      let h = '<div class="eyebrow">selected module</div>' +
+        "<h1>" + esc(n.label) + "</h1>" +
+        '<p class="sub">' + esc(n.code || "") + " &middot; " + esc(n.shape || "") +
+        (REPOS.size > 1 && n.repo ? " &middot; " + esc(n.repo) : "") + "</p>";
+      if (n.delta) h += '<div class="badge b-' + esc(n.delta) + '">' + esc(n.delta) + "</div>";
+      if (state.tab === "does") {
+        h += '<p class="lead">' + inline(n.purpose || "") + "</p>";
+        h += '<div class="eyebrow plain">incoming</div>' +
+          (ins.length ? ins.map(e => '<span class="chip">' +
+            esc((map.get(e.from)||{}).label || e.from) + "</span>").join("")
+            : '<p class="empty">none</p>');
+        h += '<div class="eyebrow plain">outgoing</div>' +
+          (outs.length ? outs.map(e => '<span class="chip">' +
+            esc((map.get(e.to)||{}).label || e.to) + "</span>").join("")
+            : '<p class="empty">none</p>');
+      } else {
+        h += md(n.built || "");
+        if (n.condition) {
+          h += '<div class="warn"><div class="eyebrow">condition</div>' +
+            md(n.condition) + "</div>";
+        }
+      }
+      const r = REPOS.get(n.repo);
+      if (r) {
+        h += '<div class="eyebrow plain">repository</div>' +
+          '<span class="chip">' + esc(r.label || r.id) + "</span>" +
+          (r.ref ? '<span class="chip">' + esc(r.ref) + "</span>" : "");
+      }
+      h += '<div class="eyebrow plain">source</div>' + fileChips(n.files);
+      body.innerHTML = h;
+      const acts = [["clear", () => { state.selNode = null; render(); }]];
+      if (n.children) acts.unshift(["\u2192 go inside", () => goInside(n)]);
+      addFoot(foot, acts);
+      return;
+    }
+  }
+
+  /* nothing selected: the explainer */
+  const x = state.board.explainer || {};
+  const r = MODEL.repo || {};
+  let h = '<div class="eyebrow">' + esc(r.name || "") + "</div>" +
+    "<h1>" + esc(x.title || r.name || "System map") + "</h1>";
+  if (x.subtitle) h += '<p class="sub">' + esc(x.subtitle) + "</p>";
+  if (state.tab === "does") {
+    h += '<div class="eyebrow plain">what this is</div>' + md(x.what);
+    if (MODEL.diff) {
+      h += '<div class="eyebrow plain">the change</div>' +
+        fileChips([(MODEL.diff.base || "?") + " &rarr; " + (MODEL.diff.head || "?")]) +
+        md(MODEL.diff.summary);
+    }
+  } else {
+    h += '<div class="eyebrow plain">how to read it</div>' + md(x.howToRead);
+    const map2 = byId();
+    const doc = state.board.edges.filter(unconfirmed);
+    if (doc.length) {
+      h += '<div class="eyebrow plain">claimed by docs, unconfirmed in code</div>';
+      doc.forEach(e => {
+        h += '<div class="warn"><div class="eyebrow">' +
+          esc((map2.get(e.from)||{}).label || e.from) + " &rarr; " +
+          esc((map2.get(e.to)||{}).label || e.to) + "</div>" +
+          "<p>" + inline(e.note || "No code was found to prove this path.") +
+          "</p></div>";
+      });
+    }
+    if ((MODEL.sources || []).length) {
+      h += '<div class="eyebrow plain">seeded from</div>' +
+        MODEL.sources.map(sd => '<span class="chip">' +
+          esc(sd.label || sd.path) + "</span>").join("");
+    }
+    const bad = state.board.nodes.filter(n => n.condition);
+    if (bad.length) {
+      h += '<div class="eyebrow plain">what is wrong right now</div>';
+      bad.forEach(n => {
+        h += '<div class="warn"><div class="eyebrow">' + esc(n.label) + "</div>" +
+          md(n.condition) + "</div>";
+      });
+    }
+  }
+  body.innerHTML = h;
+  if (state.stack.length > 1) {
+    addFoot(foot, [["\u2190 come back out", comeBack]]);
+  }
+}
+function addFoot(foot, acts){
+  acts.forEach(([label, fn]) => {
+    const b = document.createElement("button");
+    b.textContent = label; b.onclick = fn; foot.appendChild(b);
+  });
+}
+
+/* ---------- selection & drill-down ---------- */
+function selectNode(id){
+  state.selNode = state.selNode === id ? null : id;
+  state.selEdge = null;
+  render();
+}
+function selectEdge(e){
+  state.selEdge = e._i;
+  state.selNode = null;
+  render();
+}
+function goInside(n){
+  const nb = boardById(n.children);
+  if (!nb) {
+    alert("This board was not generated. Re-run the skill scoped to \"" +
+      n.label + "\" to build it.");
+    return;
+  }
+  state.stack.push({ id:n.children, label:n.label });
+  state.board = nb;
+  state.selNode = state.selEdge = null; state.step = -1;
+  render(); fit();
+}
+function comeBack(){
+  if (state.stack.length < 2) return;
+  state.stack.pop();
+  const top = state.stack[state.stack.length - 1];
+  state.board = top.id === "root" ? ROOT : boardById(top.id);
+  state.selNode = state.selEdge = null; state.step = -1;
+  render(); fit();
+}
+function drawCrumb(){
+  const c = document.getElementById("crumb");
+  const path = state.stack.map((s, i) =>
+    i === state.stack.length - 1
+      ? "<b>" + esc(s.label) + "</b>"
+      : esc(s.label)).join(" &rsaquo; ");
+  c.innerHTML = (state.board.explainer && state.board.explainer.title
+    ? "runtime topology<br>" : "") + path;
+}
+
+/* ---------- pan / zoom ---------- */
+function apply(){
+  if (root) root.setAttribute("transform",
+    "translate(" + state.tx + "," + state.ty + ") scale(" + state.sc + ")");
+}
+function bbox(){
+  const b = state.board.nodes;
+  if (!b.length) return { x:-100, y:-100, w:200, h:200 };
+  let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
+  b.forEach(n => {
+    const s = shapeOf(n), c = iso(n.grid[0], n.grid[1]);
+    x0 = Math.min(x0, c.x - TW*0.6); x1 = Math.max(x1, c.x + TW*0.6);
+    y0 = Math.min(y0, c.y - s.h - TH*0.6); y1 = Math.max(y1, c.y + TH*0.7);
+  });
+  return { x:x0, y:y0, w:x1-x0, h:y1-y0 };
+}
+function fit(){
+  const st = document.getElementById("stage");
+  const W = st.clientWidth, H = st.clientHeight;
+  const b = bbox();
+  const pad = 44;
+  state.sc = Math.min((W - pad*2) / b.w, (H - pad*2 - 40) / b.h, 1.5);
+  if (!isFinite(state.sc) || state.sc <= 0) state.sc = 1;
+  state.tx = W/2 - (b.x + b.w/2) * state.sc;
+  state.ty = H/2 - (b.y + b.h/2) * state.sc;
+  apply();
+}
+(function wire(){
+  const st = document.getElementById("stage");
+  let drag = null;
+  svg.addEventListener("pointerdown", ev => {
+    drag = { x:ev.clientX, y:ev.clientY, tx:state.tx, ty:state.ty };
+    svg.classList.add("drag"); svg.setPointerCapture(ev.pointerId);
+  });
+  svg.addEventListener("pointermove", ev => {
+    if (!drag) return;
+    state.tx = drag.tx + (ev.clientX - drag.x);
+    state.ty = drag.ty + (ev.clientY - drag.y);
+    apply();
+  });
+  const stop = () => { drag = null; svg.classList.remove("drag"); };
+  svg.addEventListener("pointerup", stop);
+  svg.addEventListener("pointercancel", stop);
+  svg.addEventListener("click", ev => {
+    if (ev.target === svg) { state.selNode = null; state.selEdge = null; render(); }
+  });
+  st.addEventListener("wheel", ev => {
+    ev.preventDefault();
+    zoomAt(ev.clientX, ev.clientY, Math.exp(-ev.deltaY * 0.0016));
+  }, { passive:false });
+  document.getElementById("zin").onclick = () => zoomCenter(1.25);
+  document.getElementById("zout").onclick = () => zoomCenter(0.8);
+  addEventListener("resize", fit);
+  addEventListener("keydown", ev => {
+    const inField = ev.target && ev.target.tagName === "INPUT";
+    if (inField) return;
+    if (ev.key === "ArrowRight") {
+      const n = byId().get(state.selNode);
+      if (n && n.children) goInside(n);
+    } else if (ev.key === "ArrowLeft") { comeBack(); }
+    else if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault(); cycle(ev.key === "ArrowDown" ? 1 : -1);
+    } else if (ev.key === "Escape") {
+      state.selNode = null; state.selEdge = null; render();
+    }
+  });
+  function zoomAt(cx, cy, k){
+    const r = st.getBoundingClientRect();
+    const px = cx - r.left, py = cy - r.top;
+    const ns = Math.max(0.18, Math.min(4, state.sc * k));
+    state.tx = px - (px - state.tx) * (ns / state.sc);
+    state.ty = py - (py - state.ty) * (ns / state.sc);
+    state.sc = ns; apply();
+  }
+  function zoomCenter(k){
+    const r = st.getBoundingClientRect();
+    zoomAt(r.left + r.width/2, r.top + r.height/2, k);
+  }
+})();
+function cycle(d){
+  const order = [];
+  const b = state.board;
+  (b.groups.length ? b.groups : [{ id:null }]).forEach(g =>
+    b.nodes.filter(n => (n.group||null) === (g.id||null)).forEach(n => order.push(n.id)));
+  if (!order.length) return;
+  const i = order.indexOf(state.selNode);
+  const j = i < 0 ? (d > 0 ? 0 : order.length - 1)
+                  : (i + d + order.length) % order.length;
+  state.selNode = order[j]; state.selEdge = null; render();
+}
+
+/* ---------- animation ---------- */
+function tick(ts){
+  if (!state.t0) state.t0 = ts;
+  const t = (ts - state.t0) / 1000;
+  if (!state.paused) {
+    dots.forEach(d => {
+      if (!d.e._route) return;
+      const u = (t / 5.2 + d.phase) % 1;
+      const p = atT(d.e._route, u);
+      d.node.setAttribute("transform", "translate(" + p.x.toFixed(1) + "," +
+        p.y.toFixed(1) + ")");
+      d.node.setAttribute("opacity", u < .06 || u > .94 ? "0.15" : "1");
+    });
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---------- boot ---------- */
+function render(){ drawBoard(); drawRail(); drawPanel(); drawCrumb(); apply(); }
+(function boot(){
+  const r = MODEL.repo || {};
+  document.title = (r.name || "System map") +
+    (MODEL.mode && MODEL.mode !== "map" ? " \u00b7 " + MODEL.mode : "");
+  drawStrip();
+  document.getElementById("t-does").onclick = () => setTab("does");
+  document.getElementById("t-built").onclick = () => setTab("built");
+  render(); fit();
+  requestAnimationFrame(tick);
+})();
+function setTab(t){
+  state.tab = t;
+  document.getElementById("t-does").classList.toggle("on", t === "does");
+  document.getElementById("t-built").classList.toggle("on", t === "built");
+  drawPanel();
+}
+</script>

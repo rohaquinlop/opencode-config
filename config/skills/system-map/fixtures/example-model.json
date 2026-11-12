@@ -1,0 +1,343 @@
+{
+  "mode": "map",
+  "repo": {
+    "name": "system-map",
+    "ref": "skill · fixture",
+    "subtitle": "the skill mapping itself"
+  },
+  "stats": [
+    {
+      "label": "PHASES",
+      "value": "2"
+    },
+    {
+      "label": "MODES",
+      "value": "3"
+    },
+    {
+      "label": "GATES",
+      "value": "1 hard"
+    },
+    {
+      "label": "PAYLOAD LANES",
+      "value": "2 live"
+    }
+  ],
+  "groups": [
+    {
+      "id": "entry",
+      "label": "ENTRY AND CONTROL"
+    },
+    {
+      "id": "evidence",
+      "label": "THE EVIDENCE PASS"
+    },
+    {
+      "id": "render",
+      "label": "THE RENDER PASS"
+    },
+    {
+      "id": "out",
+      "label": "WHAT COMES OUT"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "sk",
+      "code": "SK",
+      "label": "Skill entry",
+      "group": "entry",
+      "shape": "cube",
+      "grid": [
+        0,
+        0
+      ],
+      "purpose": "Receives the invocation, resolves which mode to run and what the target is.",
+      "built": "A single SKILL.md read into context by the Skill tool. Frontmatter carries only name and description; the body is an imperative numbered workflow.",
+      "condition": null,
+      "files": [
+        "SKILL.md"
+      ],
+      "children": null,
+      "delta": null
+    },
+    {
+      "id": "rl",
+      "code": "RL",
+      "label": "Hard rules",
+      "group": "entry",
+      "shape": "slab",
+      "grid": [
+        2,
+        0
+      ],
+      "purpose": "Constrains what may become a node, an edge, or a payload.",
+      "built": "A reference document loaded before drafting. Eight numbered rules, each one a refusal.",
+      "condition": "Rules are advisory to the model; only the validator enforces anything mechanically.",
+      "files": [
+        "references/evidence-rules.md"
+      ],
+      "children": null,
+      "delta": null
+    },
+    {
+      "id": "ev",
+      "code": "EV",
+      "label": "Evidence pass",
+      "group": "evidence",
+      "shape": "stack",
+      "grid": [
+        0,
+        2
+      ],
+      "purpose": "Drafts the board's groups, nodes, and edges from real code.",
+      "built": "Model-driven, not scripted. Recon, then drafting, then grep-confirmation of every claimed boundary.",
+      "condition": null,
+      "files": [
+        "references/evidence-rules.md",
+        "references/model-schema.md"
+      ],
+      "children": null,
+      "delta": null
+    },
+    {
+      "id": "py",
+      "code": "PY",
+      "label": "Payload harvest",
+      "group": "evidence",
+      "shape": "tower",
+      "grid": [
+        2,
+        2
+      ],
+      "purpose": "Quotes three to five real data shapes from type definitions, fixtures, or samples.",
+      "built": "Verbatim extraction only. Every payload carries the file and line range it was quoted from.",
+      "condition": "A repo with no type definitions and no fixtures yields no payloads, and the board loses its moving dots.",
+      "files": [
+        "references/evidence-rules.md"
+      ],
+      "children": null,
+      "delta": null
+    },
+    {
+      "id": "md",
+      "code": "MD",
+      "label": "model.json",
+      "group": "evidence",
+      "shape": "flat",
+      "grid": [
+        4,
+        2
+      ],
+      "purpose": "Holds the whole board as reviewable, hand-editable data.",
+      "built": "One JSON document conforming to the documented schema. The only handoff between the two passes.",
+      "condition": null,
+      "files": [
+        "references/model-schema.md",
+        "fixtures/example-model.json"
+      ],
+      "children": null,
+      "delta": null
+    },
+    {
+      "id": "va",
+      "code": "VA",
+      "label": "Validator",
+      "group": "render",
+      "shape": "tower",
+      "grid": [
+        6,
+        2
+      ],
+      "purpose": "Fails the run when any citation does not resolve on disk.",
+      "built": "A dependency-free Python script. Checks schema, node cap, path existence, line bounds, and id resolution. Exits non-zero with a list.",
+      "condition": null,
+      "files": [
+        "scripts/validate_model.py"
+      ],
+      "children": null,
+      "delta": null
+    },
+    {
+      "id": "rn",
+      "code": "RN",
+      "label": "Renderer",
+      "group": "render",
+      "shape": "cube",
+      "grid": [
+        6,
+        0
+      ],
+      "purpose": "Substitutes the validated model into the hand-written board template.",
+      "built": "A text substitution, deliberately not code generation. The template is authored once and never regenerated.",
+      "condition": null,
+      "files": [
+        "scripts/render.py",
+        "assets/board.html"
+      ],
+      "children": null,
+      "delta": null
+    },
+    {
+      "id": "bd",
+      "code": "BD",
+      "label": "Board",
+      "group": "out",
+      "shape": "slab",
+      "grid": [
+        8,
+        0
+      ],
+      "purpose": "The self-contained interactive page you open, pan, and click.",
+      "built": "Inline CSS and vanilla JS over an SVG isometric projection. Zero external requests, so it survives the Artifact CSP.",
+      "condition": null,
+      "files": [
+        "assets/board.html",
+        "references/visual-spec.md"
+      ],
+      "children": null,
+      "delta": null
+    },
+    {
+      "id": "ar",
+      "code": "AR",
+      "label": "Artifact",
+      "group": "out",
+      "shape": "flat",
+      "grid": [
+        8,
+        2
+      ],
+      "purpose": "A private shareable URL for the same board.",
+      "built": "The rendered file published through the Artifact tool. Redeploying the same path keeps the URL stable.",
+      "condition": null,
+      "files": [
+        "SKILL.md"
+      ],
+      "children": null,
+      "delta": null
+    }
+  ],
+  "edges": [
+    {
+      "from": "sk",
+      "to": "rl",
+      "kind": "control",
+      "payload": null,
+      "evidence": "SKILL.md",
+      "delta": null
+    },
+    {
+      "from": "rl",
+      "to": "ev",
+      "kind": "control",
+      "payload": null,
+      "evidence": "references/evidence-rules.md",
+      "delta": null
+    },
+    {
+      "from": "sk",
+      "to": "ev",
+      "kind": "control",
+      "payload": null,
+      "evidence": "SKILL.md",
+      "delta": null
+    },
+    {
+      "from": "ev",
+      "to": "py",
+      "kind": "control",
+      "payload": null,
+      "evidence": "references/evidence-rules.md",
+      "delta": null
+    },
+    {
+      "from": "ev",
+      "to": "md",
+      "kind": "data",
+      "payload": "node",
+      "evidence": "references/model-schema.md",
+      "delta": null
+    },
+    {
+      "from": "py",
+      "to": "md",
+      "kind": "data",
+      "payload": "payload",
+      "evidence": "references/model-schema.md",
+      "delta": null
+    },
+    {
+      "from": "md",
+      "to": "va",
+      "kind": "data",
+      "payload": "node",
+      "evidence": "scripts/validate_model.py",
+      "delta": null
+    },
+    {
+      "from": "va",
+      "to": "ev",
+      "kind": "retry",
+      "payload": null,
+      "evidence": "scripts/validate_model.py",
+      "delta": null
+    },
+    {
+      "from": "va",
+      "to": "rn",
+      "kind": "control",
+      "payload": null,
+      "evidence": "scripts/render.py",
+      "delta": null
+    },
+    {
+      "from": "rn",
+      "to": "bd",
+      "kind": "data",
+      "payload": "node",
+      "evidence": "scripts/render.py",
+      "delta": null
+    },
+    {
+      "from": "bd",
+      "to": "ar",
+      "kind": "control",
+      "payload": null,
+      "evidence": "SKILL.md",
+      "delta": null
+    },
+    {
+      "from": "bd",
+      "to": "ev",
+      "kind": "feedback",
+      "payload": null,
+      "evidence": "SKILL.md",
+      "delta": null
+    }
+  ],
+  "payloads": [
+    {
+      "id": "node",
+      "label": "Node",
+      "source": "references/model-schema.md",
+      "origin": "typedef",
+      "snippet": "{\n  \"id\": \"rl\",\n  \"code\": \"RL\",\n  \"label\": \"Run loop\",\n  \"group\": \"loop\",\n  \"shape\": \"cube\",\n  \"grid\": [1, 0],\n  \"purpose\": \"...\",\n  \"files\": [\"src/run_loop.py:40-120\"]\n}"
+    },
+    {
+      "id": "payload",
+      "label": "Payload",
+      "source": "references/model-schema.md",
+      "origin": "typedef",
+      "snippet": "{\n  \"id\": \"generation-context\",\n  \"label\": \"GenerationContext\",\n  \"source\": \"src/types.py:14-52\",\n  \"origin\": \"typedef\",\n  \"snippet\": \"...verbatim...\"\n}"
+    }
+  ],
+  "steps": [],
+  "explainer": {
+    "title": "The Two-Pass Board",
+    "subtitle": "how a repository becomes something you can point at",
+    "what": "This skill turns a codebase into an interactive isometric board. It runs in two passes with a hard gate between them.\n\nThe first pass is **evidence**. The model reads the repository and drafts a small set of responsibilities, the real paths between them, and a handful of data shapes quoted verbatim from type definitions or fixtures. Its only output is `model.json`.\n\nThe second pass is **render**. A validator refuses the model if any cited file or line range does not exist. Only then does a hand-written template get the model substituted into it.\n\nThe split is the whole point. Analysis is where judgement belongs, so the model does it. Drawing is where consistency belongs, so a template does it.",
+    "howToRead": "Hover anything for a plain description. The **HOW IT'S BUILT** tab gives the implementation, and **Condition** lists what is currently wrong with it.\n\nSolid lines are control. Dashed lines are retry paths. Dotted lines are feedback. The moving dots are payloads: click one to read the exact snippet and the file it was quoted from.\n\nThe tall structures are the parts that refuse things."
+  },
+  "diff": null
+}
