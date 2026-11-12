@@ -2,12 +2,7 @@
 
 Personal OpenCode V2 configuration: global instructions, agents, skills, commands, and plugins.
 
-Ported from:
-
-- [rohaquinlop/be-terse](https://github.com/rohaquinlop/be-terse)
-- [rohaquinlop/shepherd](https://github.com/rohaquinlop/shepherd)
-- [rohaquinlop/pi-deepseek-cache](https://github.com/rohaquinlop/pi-deepseek-cache)
-- [rohaquinlop/claude-config](https://github.com/rohaquinlop/claude-config)
+Inspired by several agent-driven development workflows.
 
 ## Install
 
@@ -52,7 +47,7 @@ config/
     ├── be-terse/        terseness instruction on every root-session prompt
     ├── shepherd/        pre-push gate, diagnosis guard, session resume, stop nudge, CLI
     ├── deepseek-cache/  date/env freeze, telemetry, prefix guard, deterministic compaction
-    └── claude-hooks/    destructive-git block, Python edit checks, Python stop gate
+    └── workflow-hooks/  destructive-git block, Python edit checks, Python stop gate
 ```
 
 ## Models

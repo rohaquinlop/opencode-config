@@ -1,7 +1,7 @@
 /**
  * deepseek-cache for OpenCode.
  *
- * Port of pi-deepseek-cache. DeepSeek and MiMo bill cached prefix tokens at
+ * DeepSeek and MiMo prefix-cache optimization. DeepSeek and MiMo bill cached prefix tokens at
  * 50–120x less than fresh input, but only when the prompt prefix is
  * byte-identical from position 0.
  *
@@ -10,7 +10,7 @@
  *   P2  Prefix guard: hash the prefix each turn and count breaks.
  *   P3  Deterministic compaction at temperature 0, with a summary cache.
  *
- * OpenRouter upstream pinning (P5 in the Pi extension) is not ported: it needs
+ * OpenRouter upstream pinning (P5 in the original design) is not ported: it needs
  * OpenRouter-specific routing state. Use the `deepseek` provider directly.
  */
 

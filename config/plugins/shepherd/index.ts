@@ -1,7 +1,7 @@
 /**
  * shepherd for OpenCode.
  *
- * Ports the Claude Code plugin hooks to the OpenCode V2 plugin API:
+ * Hooks for the OpenCode V2 plugin API:
  *   SessionStart      -> the session prompt hook injects branch state once
  *   PreToolUse (Bash)  -> the permission evaluate hook gates git push / gh pr merge
  *   PreToolUse (Edit)  -> the permission evaluate hook keeps an active diagnosis read-only

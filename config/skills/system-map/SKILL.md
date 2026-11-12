@@ -1,6 +1,6 @@
 ---
 name: system-map
-description: Turn a codebase, a set of services, a change, or a runtime path into an interactive isometric system map you can point at and discuss. Works across one repo or many in a workspace, and can be seeded from architecture notes, design docs, a README or CLAUDE.md, or context given in conversation. Language- and stack-agnostic. Use when the user wants to understand how a repo is put together, how services interact, what a PR or commit range actually touched, or what happens along one entry point. Triggers on "map this repo", "system map", "map these services", "how does this fit together", "visualize the architecture", "show me what this PR changed", "trace this request", "explain this codebase visually".
+description: Turn a codebase, a set of services, a change, or a runtime path into an interactive isometric system map you can point at and discuss. Works across one repo or many in a workspace, and can be seeded from architecture notes, design docs, a README or AGENTS.md, or context given in conversation. Language- and stack-agnostic. Use when the user wants to understand how a repo is put together, how services interact, what a PR or commit range actually touched, or what happens along one entry point. Triggers on "map this repo", "system map", "map these services", "how does this fit together", "visualize the architecture", "show me what this PR changed", "trace this request", "explain this codebase visually".
 ---
 
 # System Map
@@ -28,7 +28,7 @@ Infer the mode from the request. Ask only when genuinely ambiguous.
 - **A workspace of several repositories.** A directory whose subfolders are each
   their own git repo. Declare them in `repos`; citations get a `repoId:` prefix.
 - **Seeding context.** Anything that describes the system: an architecture note,
-  a design doc, an ADR, a README, a root `CLAUDE.md`, a wiki export — or the user
+  a design doc, an ADR, a README, a root `AGENTS.md`, a wiki export — or the user
   simply explaining it in the conversation. Read it first for the candidate
   topology and the team's vocabulary, then confirm in code. A claim from context
   never becomes code evidence; see rule 9.

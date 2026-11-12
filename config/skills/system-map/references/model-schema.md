@@ -20,7 +20,7 @@ checkout_api:src/publish.py:20
 
 A citation whose prefix matches no declared repo id stays relative to the
 workspace root. That is how seeding documents sitting above the repos are cited,
-e.g. `CLAUDE.md:28`.
+e.g. `AGENTS.md:28`.
 
 `scripts/validate_model.py` resolves every citation and fails the run on the
 first that does not exist or whose line range runs past the end of the file.
@@ -72,7 +72,7 @@ name its `repo`, every edge must declare a `transport`, and citations may use th
 ```
 
 The documents the board was seeded from — an architecture note, a design doc, an
-ADR, a README, a root `CLAUDE.md`, a wiki page. They are listed in the explainer
+ADR, a README, a root `AGENTS.md`, a wiki page. They are listed in the explainer
 panel under **seeded from**, so a reader can see what the map was built on top of.
 Required if any edge has `source: "doc"`.
 

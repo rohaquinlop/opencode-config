@@ -1,5 +1,5 @@
 /**
- * claude-config hooks, ported to OpenCode.
+ * Development workflow hooks for OpenCode.
  *
  *   PreToolUse (Bash)  -> deny destructive / branch-creating git ops
  *   PostToolUse (Edit) -> run ruff, ty, complexipy on changed Python files and
@@ -7,7 +7,7 @@
  *   Stop               -> run the Python quality gate on uncommitted .py changes
  *                         and push the agent to fix it, at most 3 times per tree
  *
- * The herdr session reporter and the Claude status line have no OpenCode
+ * The terminal session reporter and the status line have no OpenCode
  * equivalent and are intentionally not ported.
  */
 
@@ -70,7 +70,7 @@ function isPython(path: string): boolean {
 }
 
 export default Plugin.define({
-  id: "claude-hooks",
+  id: "workflow-hooks",
   async setup(ctx) {
     const pending = new Map<string, string[]>()
     const sessionFor = (event: any) => String(event?.sessionID ?? event?.properties?.sessionID ?? "*")

@@ -102,7 +102,7 @@ than filling the gap.
 ## 9. Documents seed the map; they do not confirm it
 
 You will often be handed something that already states the topology — an
-architecture note, a design page, an ADR, a README, a root `CLAUDE.md`, a wiki
+architecture note, a design page, an ADR, a README, a root `AGENTS.md`, a wiki
 export, or just the person explaining it to you in the conversation. Use it. It
 is the fastest route to a candidate node and edge list, and on a large workspace
 it may be the only thing that describes the cross-service flow at all.

@@ -102,7 +102,7 @@ git commit -m "feat(api): apply rate limiter to incoming requests"
 - Never use `git add .` or `git add -A`
 - If a file genuinely touches multiple concerns, prefer the dominant one as the scope
 - `pyproject.toml` and `uv.lock` always go together in a single `chore(deps)` commit
-- Never include Claude as co-author
+- Never include AI attribution or co-author trailers
 - Never push changes — only commit when asked
 
 ---

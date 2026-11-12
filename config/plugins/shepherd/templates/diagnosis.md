@@ -49,7 +49,7 @@ Not found: say so.>
 
 | Check | Owner | Exact command or steps |
 |---|---|---|
-| <what it would settle> | <Claude | user | team, only if named in evidence> | <copy-ready command, matched to the owner's tools> |
+| <what it would settle> | <OpenCode | user | team, only if named in evidence> | <copy-ready command, matched to the owner's tools> |
 
 ## Fix direction
 

@@ -453,7 +453,7 @@ cmd_clear() {
 }
 
 # Outside a git repository there is no code to protect, so there is no guard:
-# the write-up and scratch dir go under ~/.claude/diagnoses/.
+# the write-up and scratch dir go under ~/.local/state/opencode/diagnoses/.
 diagnose_outside_repo() {
   local sub="$1" slug base writeup
   case "$sub" in

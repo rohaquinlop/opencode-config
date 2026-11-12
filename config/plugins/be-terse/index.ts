@@ -1,7 +1,7 @@
 /**
  * be-terse for OpenCode.
  *
- * Ports the Claude Code UserPromptSubmit hook: append a style instruction to
+ * Appends a style instruction to each prompt. append a style instruction to
  * every prompt. Resolution order, first match wins:
  *   1. trailing "noterse"          -> add nothing, this prompt only
  *   2. trailing "ste"/"caveman"    -> that mode, this prompt only

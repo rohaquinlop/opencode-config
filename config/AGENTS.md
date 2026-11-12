@@ -8,8 +8,7 @@
   I say so.
 - Never include `.sdd/` or session scratchpad artifacts in commits or PRs.
 - Group changes into conventional commits (feat/fix/refactor/docs, scoped).
-- Never include `Co-Authored-By` or "Generated with Claude" / "Generated with
-  OpenCode" trailers.
+- Never include `Co-Authored-By` or any AI attribution trailer.
 - Before committing, run `git status` and stage only the files you touched —
   never sweep pre-staged `git mv`/`rm` changes into your commit.
 - Never hard-wrap PR bodies or markdown at 80 columns; GitHub renders literal
@@ -70,8 +69,8 @@
 
 ## Project Conventions (read before editing)
 
-- OpenCode loads `AGENTS.md`, not `CLAUDE.md`. If a repo only has `CLAUDE.md`,
-  read it before editing.
+- OpenCode loads `AGENTS.md`. If a repo has other agent instruction files at
+  its root, read them before editing.
 - Read env/config access patterns before adding new ones: use
   `environment_variables.py`, not raw `os.getenv`.
 - Preserve existing `docker-compose` `VAR=${VAR}` interpolation style; do not
