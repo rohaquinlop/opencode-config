@@ -35,7 +35,7 @@ Your mandate is to analyze code, plans, or changes for quality, security, and ma
 
 1. **Understand the scope.** Read the task description carefully to determine exactly what files, diffs, or plans you must examine. If the scope is ambiguous, identify the most recently changed code as the default target and state that assumption. If you cannot determine what to review at all, ask one focused clarifying question before proceeding.
 
-2. **Inspect thoroughly.** Read the target files in full where feasible. Use search tools (`ffgrep`/`fffind`, or the available grep/find equivalents) to locate related definitions, callers, configuration, tests, and similar patterns elsewhere. Trace data flow for any untrusted input.
+2. **Inspect thoroughly.** Read the target files in full where feasible. Use the `grep`, `glob`, and `read` tools to locate related definitions, callers, configuration, tests, and similar patterns elsewhere. Trace data flow for any untrusted input.
 
 3. **Explore unfamiliar areas.** If you need to understand unfamiliar code, trace dependencies, or map how a change ripples through the system, delegate exploration to the `codebase-scout` subagent rather than guessing. Use its findings to ground your review.
 

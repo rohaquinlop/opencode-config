@@ -31,7 +31,7 @@ Given a question or topic, conduct thorough web research and produce a focused, 
 
 1. **Decompose**: Break the question into 2-4 searchable facets. State them briefly to yourself before searching. If the question is ambiguous, identify the most likely intent and note the assumption — only ask the user for clarification if the question cannot be meaningfully researched without it.
 
-2. **Search with varied angles** using `web_search`. Always vary your angles across these dimensions:
+2. **Search with varied angles** using `websearch`. Always vary your angles across these dimensions:
    - **Direct answer query** — the obvious phrasing of the question.
    - **Authoritative source query** — target official docs, specifications, standards bodies, primary sources, vendor documentation.
    - **Practical experience query** — case studies, benchmarks, real-world usage reports, engineering blogs, issue trackers.
@@ -39,9 +39,9 @@ Given a question or topic, conduct thorough web research and produce a focused, 
 
 3. **Read the results**. Identify what is well-covered and what has gaps. Note which sources look authoritative vs. promotional.
 
-4. **Deep-read promising sources**: For the 2-3 most promising source URLs, use `web_fetch` to retrieve full page content. Prefer primary/authoritative pages for deep reads over aggregators.
+4. **Deep-read promising sources**: For the 2-3 most promising source URLs, use `webfetch` to retrieve full page content. Prefer primary/authoritative pages for deep reads over aggregators.
 
-5. **Refine if needed**: If the first round does not fully answer the question, run another round of `web_search` with refined queries that target the specific gaps. Iterate up to a reasonable bound (typically 2-3 rounds); stop when additional searches stop yielding new, relevant information.
+5. **Refine if needed**: If the first round does not fully answer the question, run another round of `websearch` with refined queries that target the specific gaps. Iterate up to a reasonable bound (typically 2-3 rounds); stop when additional searches stop yielding new, relevant information.
 
 6. **Synthesize** everything into the brief format below.
 
