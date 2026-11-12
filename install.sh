@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Link this repository's config/ tree into ~/.config/opencode.
+# Copy this repository's config/ tree into ~/.config/opencode.
 #
 # Existing files are moved to ~/.opencode-config-backup-<timestamp>/ first.
-# Nothing is deleted. Safe to re-run: files already linked to this repo are
-# skipped.
+# Nothing is deleted. Safe to re-run: identical files are skipped.
+#
+# To capture changes made in the live config back into this repo, run
+# ./sync.sh.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,31 +15,33 @@ BACKUP="$HOME/opencode-config-backup-$(date +%Y%m%d-%H%M%S)"
 
 mkdir -p "$DEST"
 
-link() {
-  local src="$1"
-  local rel="${src#"$SRC"/}"
-  local dest="$DEST/$rel"
-
-  mkdir -p "$(dirname "$dest")"
-
-  if [ -L "$dest" ] && [ "$(readlink -f "$dest")" = "$(readlink -f "$src")" ]; then
-    return
-  fi
-
-  if [ -e "$dest" ] || [ -L "$dest" ]; then
-    mkdir -p "$(dirname "$BACKUP/$rel")"
-    mv "$dest" "$BACKUP/$rel"
-  fi
-
-  ln -s "$src" "$dest"
-  echo "linked $rel"
+backup() {
+  local dest="$1"
+  local rel="${dest#"$DEST"/}"
+  mkdir -p "$(dirname "$BACKUP/$rel")"
+  cp -a "$dest" "$BACKUP/$rel"
 }
 
-while IFS= read -r -d '' file; do
-  link "$file"
+while IFS= read -r -d '' src; do
+  rel="${src#"$SRC"/}"
+  dest="$DEST/$rel"
+  mkdir -p "$(dirname "$dest")"
+
+  if [ -L "$dest" ]; then
+    backup "$dest"
+    rm -f "$dest"
+  elif [ -e "$dest" ] && cmp -s "$src" "$dest"; then
+    continue
+  elif [ -e "$dest" ]; then
+    backup "$dest"
+    rm -f "$dest"
+  fi
+
+  cp -p "$src" "$dest"
+  echo "installed $rel"
 done < <(find "$SRC" -type f -print0)
 
-# The shepherd CLI wrapper. It always resolves through the linked config.
+# The shepherd CLI wrapper.
 mkdir -p "$HOME/.local/bin"
 cat >"$HOME/.local/bin/shepherd" <<'EOF'
 #!/usr/bin/env bash

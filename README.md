@@ -17,11 +17,26 @@ cd opencode-config
 ./install.sh
 ```
 
-The script links every file in `config/` into `~/.config/opencode/`. Existing files are moved to
+The script copies every file in `config/` into `~/.config/opencode/`. Existing files are moved to
 `~/.opencode-config-backup-<timestamp>/` first. Nothing is deleted. It is safe to re-run.
 
-After linking, edit files in `~/.config/opencode/` as usual. The changes land in this repo through
-the symlinks. Commit and push them here.
+## Capture changes
+
+Edit the live config in `~/.config/opencode/`, then run:
+
+```sh
+cd ~/opencode-config
+./sync.sh
+```
+
+The script copies the live config back into `config/`, strips runtime files, replaces home paths
+with `~`, runs a secret scan, and shows `git status`. Review it, commit, and push.
+
+```sh
+git add -A
+git commit -m "chore: update opencode config"
+git push
+```
 
 ## Layout
 
