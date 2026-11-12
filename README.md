@@ -57,6 +57,17 @@ config/
 - `shepherd-reviewer-strong`: `deepseek/deepseek-v4-pro#high` for round 1 pre-PR calls 2+ and plan review calls 2+.
 - `senior-code-reviewer`: `deepseek/deepseek-v4-pro`.
 
+## Herdr
+
+The herdr server config is stowed from `~/.dotfiles/herdr`. Install the OpenCode integration with:
+
+```sh
+herdr integration install opencode
+herdr integration status
+```
+
+Herdr-generated files are machine-local and not tracked here.
+
 ## Not included
 
 - `service.json`, logs, session history, credentials, and API keys.

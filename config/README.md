@@ -36,6 +36,21 @@ The shepherd CLI is on PATH as `shepherd` (`~/.local/bin/shepherd`). It writes s
 | Post-tool checks | `tool.hook("execute.after")` + `session.hook("context")` |
 | Stop gate | `event.subscribe("session.idle")` + `session.prompt` |
 
+## Herdr
+
+The herdr server config is stowed from `~/.dotfiles/herdr`:
+`~/.config/herdr/config.toml`.
+
+Install the OpenCode integration:
+
+```sh
+herdr integration install opencode
+herdr integration status
+```
+
+It generates machine-local files. They are not tracked in this repo:
+`plugins/herdr-agent-state.js`, `herdr-tui-session.js`, `tui.jsonc`, `herdr-opencode/`.
+
 ## Not included
 
 - `service.json`, logs, session history, credentials, and API keys.

@@ -18,6 +18,8 @@ for item in AGENTS.md opencode.json cli.json README.md agents commands skills pl
 done
 
 rm -f "$DEST/service.json"
+rm -f "$DEST/plugins/herdr-agent-state.js" "$DEST/herdr-tui-session.js" "$DEST/tui.jsonc"
+rm -rf "$DEST/herdr-opencode"
 find "$DEST" -name '*.log' -delete
 find "$DEST" \( -name '.env' -o -name '.env.*' \) ! -name '.env.example' -delete
 
