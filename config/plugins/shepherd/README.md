@@ -21,7 +21,7 @@ study → brief → implement → targeted checks → fresh read-only review (ma
 | Agent | Model | Used for |
 | --- | --- | --- |
 | `shepherd-reviewer` | `deepseek/deepseek-flash#low` | Routine reviews, round 2+, verify calls, when a PR exists |
-| `shepherd-reviewer-strong` | `deepseek/deepseek-v4-pro#high` | Round 1 pre-PR calls 2+, plan review calls 2+ |
+| `shepherd-reviewer-strong` | `deepseek/deepseek-flash#max` | Round 1 pre-PR calls 2+, plan review calls 2+ |
 
 ## State
 

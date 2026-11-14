@@ -54,7 +54,7 @@ config/
 
 - Default: `deepseek/deepseek-flash`.
 - `shepherd-reviewer`: `deepseek/deepseek-flash#low` for routine reviews and verify calls.
-- `shepherd-reviewer-strong`: `deepseek/deepseek-v4-pro#high` for round 1 pre-PR calls 2+ and plan review calls 2+.
+- `shepherd-reviewer-strong`: `deepseek/deepseek-flash#max` for round 1 pre-PR calls 2+ and plan review calls 2+.
 - `senior-code-reviewer`: `deepseek/deepseek-v4-pro`.
 
 ## Herdr
