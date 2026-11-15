@@ -1,7 +1,6 @@
 ---
 description: Independent review of recently written code, a plan, or a diff for correctness, security, edge cases, and plan adherence. Read-only.
 mode: subagent
-model: deepseek/deepseek-v4-pro
 permissions:
   - action: "*"
     resource: "*"

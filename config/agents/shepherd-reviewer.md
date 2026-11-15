@@ -1,7 +1,6 @@
 ---
 description: Fresh, read-only reviewer for the shepherd workflow. Reviews one review bundle (a candidate diff before a push, or an implementation plan before any code) against the target branch's rules and returns actionable findings, "current at <sha>", or "plan current". Use only from the shepherd run skill's review gate or plan design review.
 mode: subagent
-model: deepseek/deepseek-flash#low
 permissions:
   - action: "*"
     resource: "*"
