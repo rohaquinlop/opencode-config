@@ -11,6 +11,9 @@ default.
 - `routine` -> `codebase-scout`, `shepherd-reviewer`
 - `strong` -> `shepherd-reviewer-strong`, `senior-code-reviewer`
 
+An optional `overrides` block replaces one agent's spec for one provider
+(`overrides.<agent>.<provider>`), used to keep per-agent DeepSeek choices.
+
 Mapped subagents inherit the parent session's model, then a
 `experimental.model.resolve` hook substitutes the tier's model **of the same
 provider as the running model**. Adding a subscription later means adding one
@@ -35,9 +38,9 @@ recorded and applied as the catalog default, because OpenCode does not persist
 ## Log
 
 Resolutions append JSONL to `<tmpdir>/opencode/model-tiers.log` (deduped per
-agent): `resolve` entries carry `reason` (`tier`, `tier-variant-dropped`,
-`catalog-empty`, `inherit-no-column`, `inherit-no-match`); `sticky-default`
-entries record a new default. Inspect with:
+agent): `resolve` entries carry `reason` (`tier`, `override`,
+`tier-variant-dropped`, `catalog-empty`, `inherit-no-column`,
+`inherit-no-match`); `sticky-default` entries record a new default. Inspect with:
 
 ```sh
 grep '"event":"resolve"' /tmp/opencode/model-tiers.log

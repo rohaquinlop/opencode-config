@@ -23,6 +23,7 @@ type Spec = string
 interface TierMap {
   agents: Record<string, string>
   tiers: Record<string, Record<string, Spec>>
+  overrides?: Record<string, Record<string, Spec>>
 }
 
 interface ModelRef {
@@ -147,7 +148,8 @@ export default Plugin.define({
         if (!providerID || !id) return
         const map = loadMap()
         const tier = map?.agents?.[event.agent as string]
-        const spec = tier ? map?.tiers?.[tier]?.[providerID] : undefined
+        const override = map?.overrides?.[String(event.agent)]?.[providerID]
+        const spec = override ?? (tier ? map?.tiers?.[tier]?.[providerID] : undefined)
 
         if (tier && spec) {
           const models = await catalog()
@@ -161,7 +163,13 @@ export default Plugin.define({
             }
             logOnce(String(event.agent), {
               event: "resolve",
-              reason: models.length ? (wanted.variant && !resolved.variant ? "tier-variant-dropped" : "tier") : "catalog-empty",
+              reason: models.length
+                ? override
+                  ? "override"
+                  : wanted.variant && !resolved.variant
+                    ? "tier-variant-dropped"
+                    : "tier"
+                : "catalog-empty",
               providerID: resolved.providerID,
               id: resolved.id,
               variant: resolved.variant ?? null,
