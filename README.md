@@ -47,15 +47,17 @@ config/
     ├── be-terse/        terseness instruction on every root-session prompt
     ├── shepherd/        pre-push gate, diagnosis guard, session resume, stop nudge, CLI
     ├── deepseek-cache/  date/env freeze, telemetry, prefix guard, deterministic compaction
+    ├── model-tiers/     per-provider tier map for subagent models, sticky model default
     └── workflow-hooks/  destructive-git block, Python edit checks, Python stop gate
 ```
 
 ## Models
 
-- Default: `deepseek/deepseek-flash`.
-- `shepherd-reviewer`: `deepseek/deepseek-flash#low` for routine reviews and verify calls.
-- `shepherd-reviewer-strong`: `deepseek/deepseek-flash#max` for round 1 pre-PR calls 2+ and plan review calls 2+.
-- `senior-code-reviewer`: `deepseek/deepseek-v4-pro`.
+Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per provider) and follow the provider of the currently running model.
+
+- Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
+- Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
+- Default: `xiaomi-token-plan-sgp/mimo-v2.6-pro`. The latest model picked with `/models` becomes the default for new sessions.
 
 ## Herdr
 
