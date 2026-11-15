@@ -7,9 +7,8 @@ SANDBOX="$(mktemp -d)"
 trap 'rm -rf "$SANDBOX"' EXIT
 
 HOME_DIR="$SANDBOX/home"
-STATE_DIR="$SANDBOX/state"
 LIVE="$HOME_DIR/.config/opencode"
-BACKUP_ROOT="$STATE_DIR/opencode/config-backups"
+SHIM="$HOME_DIR/.local/bin/shepherd"
 FAILURES=0
 
 if command -v sha256sum >/dev/null 2>&1; then
@@ -45,95 +44,42 @@ file_hash() {
 }
 
 tree_hash() {
-  local dir
-  for dir in "$@"; do
-    [ -d "$dir" ] || continue
-    (cd "$dir" && find . -type f -exec "${HASH[@]}" {} + | sort)
-  done | "${HASH[@]}" | cut -d' ' -f1
-}
-
-backup_count() {
-  find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' '
-}
-
-set_mtime() {
-  python3 -c 'import os, sys; t = float(sys.argv[2]); os.utime(sys.argv[1], (t, t))' "$1" "$2"
+  (cd "$1" && find . -type f -exec "${HASH[@]}" {} + | sort) | "${HASH[@]}" | cut -d' ' -f1
 }
 
 run_install() {
-  env -u XDG_CONFIG_HOME HOME="$HOME_DIR" XDG_STATE_HOME="$STATE_DIR" bash "$REPO_DIR/install.sh" "$@"
+  env -u XDG_CONFIG_HOME HOME="$HOME_DIR" bash "$REPO_DIR/install.sh" "$@"
 }
 
 mkdir -p "$LIVE"
 
-before="$(tree_hash "$HOME_DIR" "$STATE_DIR")"
-out="$(run_install --dry-run)"
-assert_contains "dry run reports a missing file" "$out" "would install AGENTS.md"
-assert_eq "dry run writes nothing" "$(tree_hash "$HOME_DIR" "$STATE_DIR")" "$before"
-
 out="$(run_install)"
 assert_contains "clean install copies files" "$out" "installed AGENTS.md"
-assert_eq "clean install leaves no backup" "$(ls -A "$BACKUP_ROOT" 2>/dev/null | wc -l | tr -d ' ')" "0"
 assert_eq "clean install matches the repo" "$(file_hash "$LIVE/AGENTS.md")" "$(file_hash "$REPO_DIR/config/AGENTS.md")"
+assert_eq "clean install writes nothing outside the config dir and the shim" "$(find "$SANDBOX" -mindepth 1 -maxdepth 3 -type d | sort | tr '\n' ' ')" "$(printf '%s ' "$SANDBOX/home" "$HOME_DIR/.config" "$LIVE" "$HOME_DIR/.local" "$HOME_DIR/.local/bin")"
+
+before="$(tree_hash "$SANDBOX")"
+out="$(run_install)"
+assert_not_contains "a second run installs nothing" "$out" "installed"
+assert_eq "a second run changes nothing" "$(tree_hash "$SANDBOX")" "$before"
 
 echo "live edit" >>"$LIVE/AGENTS.md"
 out="$(run_install)"
-assert_contains "plain run reports the skipped file" "$out" "skipped AGENTS.md"
-assert_contains "plain run keeps the live edit" "$(cat "$LIVE/AGENTS.md")" "live edit"
-assert_eq "plain run leaves no backup" "$(ls -A "$BACKUP_ROOT" 2>/dev/null | wc -l | tr -d ' ')" "0"
+assert_contains "a live edit is replaced" "$out" "installed AGENTS.md"
+assert_eq "the repo copy wins" "$(file_hash "$LIVE/AGENTS.md")" "$(file_hash "$REPO_DIR/config/AGENTS.md")"
 
-before="$(tree_hash "$HOME_DIR" "$STATE_DIR")"
-out="$(run_install --dry-run)"
-assert_contains "dry run mirrors the default action" "$out" "would skip AGENTS.md"
-assert_eq "dry run keeps the tree" "$(tree_hash "$HOME_DIR" "$STATE_DIR")" "$before"
-
-out="$(run_install --dry-run --force)"
-assert_contains "forced dry run lists the replacement" "$out" "would replace AGENTS.md"
-assert_eq "forced dry run keeps the tree" "$(tree_hash "$HOME_DIR" "$STATE_DIR")" "$before"
-
-out="$(run_install --force)"
-assert_contains "force replaces the file" "$out" "replaced AGENTS.md"
-assert_eq "force restores the repo copy" "$(file_hash "$LIVE/AGENTS.md")" "$(file_hash "$REPO_DIR/config/AGENTS.md")"
-assert_eq "force makes one backup dir" "$(backup_count)" "1"
-assert_contains "backup holds the replaced file" "$(find "$BACKUP_ROOT" -name AGENTS.md -exec cat {} +)" "live edit"
-
-for i in 1 2 3 4 5 6 7; do
-  mkdir -p "$BACKUP_ROOT/seed-$i"
-  set_mtime "$BACKUP_ROOT/seed-$i" "$((1000000000 + i * 3600))"
-done
-echo "another edit" >>"$LIVE/AGENTS.md"
-run_install --force >/dev/null
-assert_eq "old backups are pruned" "$(backup_count)" "5"
-newest="$(find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name 'seed-*' | sort | tail -1)"
-assert_contains "the newest backup holds the latest edit" "$(find "$newest" -name AGENTS.md -exec cat {} +)" "another edit"
-
-rm -f "$LIVE/AGENTS.md"
-ln -s "$REPO_DIR/config/AGENTS.md" "$LIVE/AGENTS.md"
+printf 'custom\n' >"$SHIM"
 out="$(run_install)"
-assert_not_contains "a matching symlink is left alone" "$out" "skipped AGENTS.md"
-assert_not_contains "a matching symlink makes no backup" "$out" "replaced AGENTS.md"
-[ -L "$LIVE/AGENTS.md" ] || fail "the matching symlink was replaced"
-assert_eq "the run with a symlink adds no backup" "$(backup_count)" "5"
-
-printf 'custom\n' >"$HOME_DIR/.local/bin/shepherd"
-out="$(run_install)"
-assert_contains "plain run skips a custom shim" "$out" "skipped .local/bin/shepherd"
-assert_eq "custom shim is kept" "$(cat "$HOME_DIR/.local/bin/shepherd")" "custom"
-run_install --force >/dev/null
-assert_contains "force replaces the shim" "$(cat "$HOME_DIR/.local/bin/shepherd")" "plugins/shepherd/scripts/shepherd.sh"
-assert_contains "the replaced shim is backed up" "$(find "$BACKUP_ROOT" -path '*/.local/bin/shepherd' -exec cat {} +)" "custom"
+assert_contains "a custom shim is replaced" "$out" "installed .local/bin/shepherd"
+assert_contains "the shim points at the shepherd script" "$(cat "$SHIM")" "plugins/shepherd/scripts/shepherd.sh"
 
 target="$SANDBOX/shim-target"
 printf 'target\n' >"$target"
-rm -rf "$BACKUP_ROOT"/*/.local
-rm -f "$HOME_DIR/.local/bin/shepherd"
-ln -s "$target" "$HOME_DIR/.local/bin/shepherd"
-run_install --force >/dev/null
-assert_eq "force never writes through a shim symlink" "$(cat "$target")" "target"
-[ -L "$HOME_DIR/.local/bin/shepherd" ] && fail "the shim is still a symlink"
-backup_shim="$(find "$BACKUP_ROOT" -path '*/.local/bin/shepherd' -print -quit)"
-[ -L "$backup_shim" ] && fail "the backed-up shim is still a symlink"
-assert_contains "the backed-up shim holds the target content" "$(cat "$backup_shim")" "target"
+rm -f "$SHIM"
+ln -s "$target" "$SHIM"
+run_install >/dev/null
+assert_eq "the shim is written as a file, not through a symlink" "$(cat "$target")" "target"
+[ -L "$SHIM" ] && fail "the shim is still a symlink"
 
 if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
   fail "config/opencode.json still pins a model"
