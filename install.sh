@@ -82,12 +82,16 @@ while IFS= read -r -d '' src; do
     continue
   fi
 
-  if [ -f "$dest" ] && [ ! -L "$dest" ] && cmp -s "$src" "$dest"; then
+  if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
     continue
   fi
 
   if [ "$dry_run" -eq 1 ]; then
-    echo "would replace $rel"
+    if [ "$force" -eq 1 ]; then
+      echo "would replace $rel"
+    else
+      echo "would skip $rel (differs, use --force)"
+    fi
     skipped=$((skipped + 1))
     continue
   fi
@@ -105,9 +109,11 @@ while IFS= read -r -d '' src; do
   echo "replaced $rel"
 done < <(find "$SRC" -type f -print0)
 
-if [ "$dry_run" -eq 0 ]; then
-  mkdir -p "$HOME/.local/bin"
-  if [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
+if [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
+  if [ "$dry_run" -eq 1 ]; then
+    echo "would install .local/bin/shepherd"
+  else
+    mkdir -p "$HOME/.local/bin"
     printf '%s\n' "$SHIM_BODY" >"$SHIM"
     chmod +x "$SHIM"
     echo "installed .local/bin/shepherd"
@@ -121,7 +127,11 @@ fi
 
 if [ "$skipped" -gt 0 ]; then
   if [ "$dry_run" -eq 1 ]; then
-    echo "Dry run: $skipped file(s) would be replaced. Nothing changed."
+    if [ "$force" -eq 1 ]; then
+      echo "Dry run: $skipped file(s) would be replaced. Nothing changed."
+    else
+      echo "Dry run: $skipped file(s) would be skipped. Nothing changed."
+    fi
   else
     echo "$skipped file(s) differ. Re-run with --force to replace them."
   fi

@@ -21,7 +21,8 @@ Use `--force` to replace differing files. A forced run moves them to
 five. `--dry-run` prints what would change and writes nothing.
 
 After upgrading from the old installer, run `./install.sh --force` once: the live `opencode.json`
-then loses the model pin.
+then loses the model pin. Delete the old `~/opencode-config-backup-*` directories by hand; the new
+installer keeps its own backups and does not prune those.
 
 ## Capture changes
 

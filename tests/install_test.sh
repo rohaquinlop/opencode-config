@@ -12,6 +12,12 @@ LIVE="$HOME_DIR/.config/opencode"
 BACKUP_ROOT="$STATE_DIR/opencode/config-backups"
 FAILURES=0
 
+if command -v sha256sum >/dev/null 2>&1; then
+  HASH=(sha256sum)
+else
+  HASH=(shasum -a 256)
+fi
+
 fail() {
   echo "FAIL: $1" >&2
   FAILURES=$((FAILURES + 1))
@@ -24,28 +30,51 @@ assert_eq() {
 assert_contains() {
   case "$2" in
     *"$3"*) ;;
-    *) fail "$1: output does not contain [$3]: $2" ;;
+    *) fail "$1: output does not contain [$3]: ${2:0:400}" ;;
   esac
 }
 
-run_install() {
-  env -u XDG_CONFIG_HOME HOME="$HOME_DIR" XDG_STATE_HOME="$STATE_DIR" bash "$REPO_DIR/install.sh" "$@"
+assert_not_contains() {
+  case "$2" in
+    *"$3"*) fail "$1: output contains [$3]" ;;
+  esac
+}
+
+file_hash() {
+  "${HASH[@]}" "$1" | cut -d' ' -f1
 }
 
 tree_hash() {
-  (cd "$1" && find . -type f -exec sha256sum {} + | sort | sha256sum)
+  local dir
+  for dir in "$@"; do
+    [ -d "$dir" ] || continue
+    (cd "$dir" && find . -type f -exec "${HASH[@]}" {} + | sort)
+  done | "${HASH[@]}" | cut -d' ' -f1
 }
 
 backup_count() {
   find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' '
 }
 
+set_mtime() {
+  python3 -c 'import os, sys; t = float(sys.argv[2]); os.utime(sys.argv[1], (t, t))' "$1" "$2"
+}
+
+run_install() {
+  env -u XDG_CONFIG_HOME HOME="$HOME_DIR" XDG_STATE_HOME="$STATE_DIR" bash "$REPO_DIR/install.sh" "$@"
+}
+
 mkdir -p "$LIVE"
+
+before="$(tree_hash "$HOME_DIR" "$STATE_DIR")"
+out="$(run_install --dry-run)"
+assert_contains "dry run reports a missing file" "$out" "would install AGENTS.md"
+assert_eq "dry run writes nothing" "$(tree_hash "$HOME_DIR" "$STATE_DIR")" "$before"
 
 out="$(run_install)"
 assert_contains "clean install copies files" "$out" "installed AGENTS.md"
 assert_eq "clean install leaves no backup" "$(ls -A "$BACKUP_ROOT" 2>/dev/null | wc -l | tr -d ' ')" "0"
-assert_eq "clean install matches the repo" "$(sha256sum "$LIVE/AGENTS.md" | cut -d' ' -f1)" "$(sha256sum "$REPO_DIR/config/AGENTS.md" | cut -d' ' -f1)"
+assert_eq "clean install matches the repo" "$(file_hash "$LIVE/AGENTS.md")" "$(file_hash "$REPO_DIR/config/AGENTS.md")"
 
 echo "live edit" >>"$LIVE/AGENTS.md"
 out="$(run_install)"
@@ -53,25 +82,36 @@ assert_contains "plain run reports the skipped file" "$out" "skipped AGENTS.md"
 assert_contains "plain run keeps the live edit" "$(cat "$LIVE/AGENTS.md")" "live edit"
 assert_eq "plain run leaves no backup" "$(ls -A "$BACKUP_ROOT" 2>/dev/null | wc -l | tr -d ' ')" "0"
 
-before="$(tree_hash "$HOME_DIR")"
+before="$(tree_hash "$HOME_DIR" "$STATE_DIR")"
 out="$(run_install --dry-run)"
-assert_contains "dry run lists the file" "$out" "would replace AGENTS.md"
-assert_eq "dry run writes nothing" "$(tree_hash "$HOME_DIR")" "$before"
+assert_contains "dry run mirrors the default action" "$out" "would skip AGENTS.md"
+assert_eq "dry run keeps the tree" "$(tree_hash "$HOME_DIR" "$STATE_DIR")" "$before"
+
+out="$(run_install --dry-run --force)"
+assert_contains "forced dry run lists the replacement" "$out" "would replace AGENTS.md"
+assert_eq "forced dry run keeps the tree" "$(tree_hash "$HOME_DIR" "$STATE_DIR")" "$before"
 
 out="$(run_install --force)"
 assert_contains "force replaces the file" "$out" "replaced AGENTS.md"
-assert_eq "force restores the repo copy" "$(sha256sum "$LIVE/AGENTS.md" | cut -d' ' -f1)" "$(sha256sum "$REPO_DIR/config/AGENTS.md" | cut -d' ' -f1)"
+assert_eq "force restores the repo copy" "$(file_hash "$LIVE/AGENTS.md")" "$(file_hash "$REPO_DIR/config/AGENTS.md")"
 assert_eq "force makes one backup dir" "$(backup_count)" "1"
 assert_contains "backup holds the replaced file" "$(find "$BACKUP_ROOT" -name AGENTS.md -exec cat {} +)" "live edit"
 
 for i in 1 2 3 4 5 6 7; do
   mkdir -p "$BACKUP_ROOT/seed-$i"
-  touch -d "-$i hour" "$BACKUP_ROOT/seed-$i"
+  set_mtime "$BACKUP_ROOT/seed-$i" "$((1000000000 + i * 3600))"
 done
 echo "another edit" >>"$LIVE/AGENTS.md"
 run_install --force >/dev/null
 assert_eq "old backups are pruned" "$(backup_count)" "5"
-assert_eq "the newest backup survives" "$(find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name 'seed-*' | wc -l | tr -d ' ')" "1"
+newest="$(find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name 'seed-*' | sort | tail -1)"
+assert_contains "the newest backup holds the latest edit" "$(find "$newest" -name AGENTS.md -exec cat {} +)" "another edit"
+
+rm -f "$LIVE/AGENTS.md"
+ln -s "$REPO_DIR/config/AGENTS.md" "$LIVE/AGENTS.md"
+out="$(run_install)"
+assert_not_contains "a matching symlink is left alone" "$out" "skipped AGENTS.md"
+assert_not_contains "a matching symlink makes no backup" "$out" "replaced AGENTS.md"
 
 if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
   fail "config/opencode.json still pins a model"

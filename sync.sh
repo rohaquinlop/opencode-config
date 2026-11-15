@@ -11,6 +11,20 @@ DEST="${SYNC_DEST:-$REPO_DIR/config}"
 
 mkdir -p "$DEST"
 
+# Fail before touching the tree: the copy loop below rewrites config/ in place.
+python3 - "$SRC/opencode.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if path.is_file():
+    try:
+        json.loads(path.read_text())
+    except ValueError as exc:
+        raise SystemExit(f"sync: {path} is not valid JSON ({exc}). Fix it and re-run.")
+PY
+
 for item in AGENTS.md opencode.json README.md agents commands skills plugins; do
   [ -e "$SRC/$item" ] || continue
   rm -rf "$DEST/$item"

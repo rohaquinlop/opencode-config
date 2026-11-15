@@ -6,7 +6,7 @@ Personal OpenCode V2 configuration. Inspired by several agent-driven development
 
 | Path | What |
 | --- | --- |
-| `opencode.json` | default model `xiaomi-token-plan-sgp/mimo-v2.6-pro`, updates disabled |
+| `opencode.json` | updates disabled, experimental flags |
 | `AGENTS.md` | global instructions |
 | `plugins/be-terse/` | appends a style instruction to every root-session prompt |
 | `plugins/shepherd/` | pre-push gate, diagnosis guard, session resume, stop nudge, CLI |
