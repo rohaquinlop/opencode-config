@@ -93,6 +93,9 @@ if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
 fi
 [ -e "$REPO_DIR/config/cli.json" ] && fail "config/cli.json is still shipped"
 
+runtime="$(find "$REPO_DIR/config" \( -name 'service.json' -o -name 'auth.json' -o -name 'cli.json' -o -name 'tui.jsonc' -o -name 'opencode.db*' -o -name '*.log' -o -name '.env*' \))"
+[ -z "$runtime" ] || fail "config/ holds runtime or secret files: $runtime"
+
 if [ "$FAILURES" -gt 0 ]; then
   echo "$FAILURES failure(s)" >&2
   exit 1

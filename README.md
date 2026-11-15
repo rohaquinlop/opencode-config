@@ -75,7 +75,9 @@ Herdr-generated files are machine-local and not tracked here.
 
 ## Not included
 
-- `service.json`, `cli.json` (TUI theme, verbosity), logs, session history, credentials, and API keys.
+Only files inside `config/` are tracked, so anything OpenCode writes beside them stays out of git: `service.json`, `cli.json` (theme, verbosity), `auth.json`, the session database, and logs. `.gitignore` blocks those names, and `tests/install_test.sh` fails if one appears under `config/`.
+
+- Session history, credentials, and API keys stay in OpenCode's data dir.
 - Machine-specific paths. The config uses `~` and `$HOME`.
 
 ## Before you push
