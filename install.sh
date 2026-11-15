@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Copy this repository's config/ tree into the live OpenCode config dir.
+# Link this repository's config/ tree into the live OpenCode config dir.
 #
-# The repo owns these files: a live copy that differs is replaced. Runtime state
-# that OpenCode writes itself (theme, verbosity, model) is not shipped, so it
-# survives a run.
+# Every live file becomes a symlink to its repo counterpart, the way a dotfiles
+# checkout works: an edit made live lands in the repo, and git shows it. Files
+# that OpenCode writes itself (cli.json, service.json, theme, model) are not in
+# config/, so they stay real files and are never touched.
 #
-# To capture changes made in the live config back into this repo, run
-# ./sync.sh.
+# A file removed from config/ loses its link on the next run.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,7 +17,7 @@ SHIM_BODY='#!/usr/bin/env bash
 exec bash "$HOME/.config/opencode/plugins/shepherd/scripts/shepherd.sh" "$@"'
 
 tmp=""
-installed=0
+changes=0
 
 cleanup() {
   if [ -n "$tmp" ]; then
@@ -32,18 +32,33 @@ while IFS= read -r -d '' src; do
   rel="${src#"$SRC"/}"
   dest="$DEST/$rel"
 
-  if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
+  if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then
+    continue
+  fi
+  if [ -d "$dest" ] && [ ! -L "$dest" ]; then
+    echo "skipped $rel (a directory is in the way)" >&2
     continue
   fi
 
   mkdir -p "$(dirname "$dest")"
-  tmp="$dest.tmp.$$"
-  cp -p "$src" "$tmp"
-  mv -f "$tmp" "$dest"
-  tmp=""
-  echo "installed $rel"
-  installed=$((installed + 1))
+  rm -f "$dest"
+  ln -s "$src" "$dest"
+  echo "linked $rel"
+  changes=$((changes + 1))
 done < <(find "$SRC" -type f -print0)
+
+while IFS= read -r -d '' dest; do
+  target="$(readlink "$dest")"
+  case "$target" in
+    "$SRC"/*)
+      if [ ! -e "$target" ]; then
+        rm -f "$dest"
+        echo "unlinked ${dest#"$DEST"/}"
+        changes=$((changes + 1))
+      fi
+      ;;
+  esac
+done < <(find "$DEST" -type l -print0)
 
 if [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
   mkdir -p "$(dirname "$SHIM")"
@@ -53,9 +68,9 @@ if [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
   mv -f "$tmp" "$SHIM"
   tmp=""
   echo "installed .local/bin/shepherd"
-  installed=$((installed + 1))
+  changes=$((changes + 1))
 fi
 
-if [ "$installed" -gt 0 ]; then
+if [ "$changes" -gt 0 ]; then
   echo "Done. Start a new OpenCode session, or run /reload."
 fi

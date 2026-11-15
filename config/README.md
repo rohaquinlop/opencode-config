@@ -26,7 +26,7 @@ Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per pr
 
 - Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
 - Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
-- The model is per-machine: `opencode.json` does not set it, and `./sync.sh` drops a `model` key from the captured copy of `opencode.json`. New sessions follow the model last picked with `/models` (the model-tiers sticky default); pick it once after migrating if the first session still shows the old one.
+- The model is per-machine: `opencode.json` does not set it. New sessions follow the model last picked with `/models` (the model-tiers sticky default); pick it once after the first run if a session still shows the old one.
 
 ## Hooks
 
@@ -62,5 +62,5 @@ It generates machine-local files. They are not tracked in this repo:
 
 ## Updating
 
-The live config is a copy of this tree. Edit `~/.config/opencode/`, run
-`~/opencode-config/sync.sh`, review the diff, then commit and push.
+The live config is linked to this tree. Edit `~/.config/opencode/` and the
+change lands here: review `git status`, then commit and push.

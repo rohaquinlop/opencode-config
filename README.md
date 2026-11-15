@@ -12,30 +12,28 @@ cd opencode-config
 ./install.sh
 ```
 
-The script copies `config/` into `~/.config/opencode/` and replaces files that differ: the repo owns
-these files. OpenCode's own runtime state (theme, verbosity, model) lives outside this tree
-and is not touched. It is safe to re-run, and it makes no backups.
+The script links every file in `config/` into `~/.config/opencode/`, the way a dotfiles checkout
+works: each live file is a symlink to this repo, so what OpenCode reads is what git tracks. It is
+safe to re-run, and a run with nothing to do prints nothing.
 
-Earlier versions left `~/opencode-config-backup-*` directories in `~`. Delete them once.
+OpenCode writes its own runtime files into the same directory: `cli.json` (theme, verbosity), `service.json`, and herdr output. They are not in `config/`, so they stay real files and are never linked or touched. The model lives in OpenCode's state, not here.
 
-## Capture changes
+A file you delete from `config/` loses its link on the next run. Earlier versions left
+`~/opencode-config-backup-*` directories in `~`; delete them once.
 
-Edit the live config in `~/.config/opencode/`, then run:
+## Change the config
 
-```sh
-cd ~/opencode-config
-./sync.sh
-```
-
-The script copies the live config back into `config/`, strips runtime files (`cli.json`, logs), drops
-a `model` key from `opencode.json`, replaces home paths with `~`, runs a secret scan, and shows
-`git status`. Review it, commit, and push.
+The live files point at this repo, so an edit made in `~/.config/opencode/` is already a repo change.
+Review it and commit:
 
 ```sh
+git status
 git add -A
 git commit -m "chore: update opencode config"
 git push
 ```
+
+Run the secret scan below before you commit.
 
 ## Layout
 
@@ -60,7 +58,7 @@ Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per pr
 
 - Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
 - Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
-- The model is per-machine: `opencode.json` does not set it, and `./sync.sh` drops a `model` key from the captured copy of `opencode.json`. New sessions follow the model last picked with `/models` (the model-tiers sticky default); pick it once after migrating if the first session still shows the old one.
+- The model is per-machine: `opencode.json` does not set it. New sessions follow the model last picked with `/models` (the model-tiers sticky default); pick it once after the first run if a session still shows the old one.
 
 ## Herdr
 
@@ -88,4 +86,4 @@ grep -rniE "ghp_|github_pat_|sk-[A-Za-z0-9]{10,}|AKIA[0-9A-Z]{16}|-----BEGIN|xox
 
 Then commit with a conventional message.
 
-Run `bash tests/install_test.sh` after changing `install.sh` or `sync.sh`.
+Run `bash tests/install_test.sh` after changing `install.sh`.
