@@ -12,8 +12,9 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$REPO_DIR/config"
 
-if ! git -C "$REPO_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-  echo "install.sh: $REPO_DIR is not a git checkout" >&2
+toplevel="$(git -C "$REPO_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$toplevel" ] || [ "$(cd "$toplevel" && pwd -P)" != "$(cd "$REPO_DIR" && pwd -P)" ]; then
+  echo "install.sh: $REPO_DIR is not the root of a git checkout" >&2
   exit 1
 fi
 DEST="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
@@ -33,6 +34,15 @@ trap cleanup EXIT
 
 mkdir -p "$DEST"
 
+if [ -L "$DEST" ]; then
+  echo "install.sh: $DEST is a symlink; link a real directory instead" >&2
+  exit 1
+fi
+if [ "$(cd "$DEST" && pwd -P)" = "$(cd "$SRC" && pwd -P)" ]; then
+  echo "install.sh: $DEST resolves into $SRC; refusing" >&2
+  exit 1
+fi
+
 tracked() {
   git -C "$REPO_DIR" ls-files --error-unmatch -- "$1" >/dev/null 2>&1
 }
@@ -41,7 +51,7 @@ while IFS= read -r -d '' rel; do
   src="$REPO_DIR/$rel"
   dest="$DEST/${rel#config/}"
 
-  if [ ! -e "$src" ]; then
+  if [ ! -e "$src" ] || [ "$src" -ef "$dest" ]; then
     continue
   fi
 

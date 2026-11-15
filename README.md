@@ -19,7 +19,9 @@ safe to re-run, and a run with nothing to do prints nothing.
 OpenCode writes its own runtime files into the same directory: `cli.json` (theme, verbosity), `service.json`, and herdr output. They are not in `config/`, so they stay real files and are never linked or touched. The model lives in OpenCode's state, not here.
 
 A file you delete from `config/` loses its link on the next run. Earlier versions left
-`~/opencode-config-backup-*` directories in `~`; delete them once.
+`~/opencode-config-backup-*` directories in `~`; delete them once. An edit you made in a live
+file and never ran `./sync.sh` for is replaced by the repo copy on the first run, so compare
+`diff -r config ~/.config/opencode` first.
 
 ## Change the config
 
