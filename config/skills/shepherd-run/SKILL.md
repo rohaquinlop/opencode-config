@@ -44,15 +44,11 @@ flaky job. Record those choices with `shepherd decision` instead.
 
 Before every phase change, run `shepherd set phase=<phase>`.
 
-Keep the work visible with the `todowrite` tool: after stage 0, create a list with one item per stage
-(study, implement, review gate, push, CI, triage, wait for hosted review, done), each named after its
-stage heading. Update the list when you enter or finish a stage: the current stage's item is
-`in_progress`, finished stages are `completed`. A `waiting_*` phase is not a stage, so the current
-item stays `in_progress` there. Moving back to an earlier stage reopens its item as `in_progress`.
-Mark the item `cancelled` for a stage the run will not enter: stage 7 when no hosted reviewer
-applies, stage 2 when the source is an existing PR, and stages 2-8 when study finds nothing to
-implement. Reopen a cancelled item if its stage is entered later. If the `todowrite` tool is not
-available, continue without it.
+Keep a `todowrite` list with one item per stage, named after its heading (study, implement, review
+gate, push, CI, triage, wait for hosted review, done). Entered stage `in_progress`, finished
+`completed`, a revisited stage reopened. A skipped stage is `cancelled` (stage 7 without a hosted
+reviewer, stage 2 for a PR source, stages 2-7 when study finds nothing) and reopens if entered later.
+If `todowrite` is unavailable, continue without it.
 
 ## 0. Start or resume
 
