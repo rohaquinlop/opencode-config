@@ -45,10 +45,11 @@ flaky job. Record those choices with `shepherd decision` instead.
 Before every phase change, run `shepherd set phase=<phase>`.
 
 Keep the work visible with the `todowrite` tool: after stage 0, create a list with one item per stage
-(study, implement, review gate, push, CI, triage, wait for hosted review, done) and split an item
-further when a stage has a long step. Mark the current item `in_progress`, mark finished items
-`completed`, and update the list in the same turn as each `shepherd set phase=` call. If the
-`todowrite` tool is not available, continue without it.
+(study, implement, review gate, push, CI, triage, wait for hosted review, done), each named after its
+stage heading. Update the list when you enter or finish a stage: the current stage's item is
+`in_progress`, finished stages are `completed`. A `waiting_*` phase is not a stage, so the current
+item stays `in_progress` there. Moving back to an earlier stage reopens its item as `in_progress`. If
+the `todowrite` tool is not available, continue without it.
 
 ## 0. Start or resume
 
