@@ -44,6 +44,12 @@ flaky job. Record those choices with `shepherd decision` instead.
 
 Before every phase change, run `shepherd set phase=<phase>`.
 
+Keep a `todowrite` list with one item per stage 1-8, named after its heading (study, implement, review
+gate, push, CI, triage comments, wait for hosted review, done). Entered stage `in_progress`, finished
+`completed`, a revisited stage reopened. A skipped stage is `cancelled` (stage 7 without a hosted
+reviewer, stage 2 for a PR source, stages 2-7 when study finds nothing) and reopens if entered later.
+If `todowrite` is unavailable, continue without it.
+
 ## 0. Start or resume
 
 - If `shepherd diagnose status` shows an active diagnosis, stop: its guard blocks every edit. Tell
