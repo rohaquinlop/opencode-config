@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sandbox tests for install.sh. No network, no writes outside mktemp.
+# Sandbox tests for install.sh and sync.sh. No network, no writes outside mktemp.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -72,6 +72,20 @@ echo "another edit" >>"$LIVE/AGENTS.md"
 run_install --force >/dev/null
 assert_eq "old backups are pruned" "$(backup_count)" "5"
 assert_eq "the newest backup survives" "$(find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d ! -name 'seed-*' | wc -l | tr -d ' ')" "1"
+
+if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
+  fail "config/opencode.json still pins a model"
+fi
+[ -e "$REPO_DIR/config/cli.json" ] && fail "config/cli.json is still shipped"
+
+SYNC_LIVE="$SANDBOX/sync-live"
+SYNC_DEST="$SANDBOX/sync-dest"
+mkdir -p "$SYNC_LIVE"
+printf '{\n  "$schema": "https://opencode.ai/config.json",\n  "model": "x/y",\n  "update": "disable"\n}\n' >"$SYNC_LIVE/opencode.json"
+printf '{\n  "theme": {\n    "name": "system"\n  }\n}\n' >"$SYNC_LIVE/cli.json"
+SYNC_SRC="$SYNC_LIVE" SYNC_DEST="$SYNC_DEST" bash "$REPO_DIR/sync.sh" >/dev/null
+grep -q '"model"' "$SYNC_DEST/opencode.json" && fail "sync captured the model pin"
+[ -e "$SYNC_DEST/cli.json" ] && fail "sync captured cli.json"
 
 if [ "$FAILURES" -gt 0 ]; then
   echo "$FAILURES failure(s)" >&2

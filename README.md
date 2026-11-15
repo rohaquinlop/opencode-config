@@ -20,8 +20,8 @@ Use `--force` to replace differing files. A forced run moves them to
 `${XDG_STATE_HOME:-~/.local/state}/opencode/config-backups/<timestamp>/` first and keeps the last
 five. `--dry-run` prints what would change and writes nothing.
 
-After upgrading from the old installer, run `./install.sh --force` once to bring the live files in
-line with this repo.
+After upgrading from the old installer, run `./install.sh --force` once: the live `opencode.json`
+then loses the model pin.
 
 ## Capture changes
 
@@ -32,8 +32,9 @@ cd ~/opencode-config
 ./sync.sh
 ```
 
-The script copies the live config back into `config/`, strips runtime files, replaces home paths
-with `~`, runs a secret scan, and shows `git status`. Review it, commit, and push.
+The script copies the live config back into `config/`, strips runtime files (`cli.json`, logs), drops
+a `model` key from `opencode.json`, replaces home paths with `~`, runs a secret scan, and shows
+`git status`. Review it, commit, and push.
 
 ```sh
 git add -A
@@ -46,8 +47,7 @@ git push
 ```text
 config/
 ├── AGENTS.md            global instructions
-├── opencode.json        default model and update policy
-├── cli.json             TUI theme and input settings
+├── opencode.json        update policy and experimental flags
 ├── agents/              codebase-scout, senior-code-reviewer, web-research-synthesizer, shepherd-reviewer*
 ├── commands/            /be-terse/mode, /shepherd/*, /cache-*, /jira, /slack, /handoff
 ├── skills/              git-commit, create-pr, handoff, jira, slack, ship, bro, system-map, shepherd-*
@@ -65,7 +65,7 @@ Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per pr
 
 - Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
 - Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
-- Default: `xiaomi-token-plan-sgp/mimo-v2.6-pro`. The latest model picked with `/models` becomes the default for new sessions.
+- The model is per-machine: `config/opencode.json` does not set it, and `./sync.sh` drops a `model` key from the live file. The latest model picked with `/models` becomes the default for new sessions.
 
 ## Herdr
 
@@ -80,7 +80,7 @@ Herdr-generated files are machine-local and not tracked here.
 
 ## Not included
 
-- `service.json`, logs, session history, credentials, and API keys.
+- `service.json`, `cli.json` (TUI theme, verbosity), logs, session history, credentials, and API keys.
 - Machine-specific paths. The config uses `~` and `$HOME`.
 
 ## Before you push
