@@ -1,26 +1,32 @@
 #!/usr/bin/env bash
-# Link this repository's config/ tree into the live OpenCode config dir.
+# Stow this repository's config/ package into the live OpenCode config dir.
 #
-# Every live file becomes a symlink to its repo counterpart, the way a dotfiles
-# checkout works: an edit made live lands in the repo, and git shows it. Only
-# tracked files are linked. Files that OpenCode writes itself (cli.json,
-# service.json, theme, model) are never tracked, so they stay real files.
+# GNU stow links every file in config/ into ~/.config/opencode, the same way a
+# dotfiles checkout works: an edit made live lands in the repo, and git shows
+# it. Files that OpenCode writes itself (cli.json, service.json, theme, model)
+# are ignored, so they stay real files.
 #
-# A file removed from the index loses its link on the next run.
+# A file removed from config/ loses its link on the next run.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$REPO_DIR/config"
+DEST="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+SHIM="$HOME/.local/bin/shepherd"
+SHIM_BODY='#!/usr/bin/env bash
+exec bash "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins/shepherd/scripts/shepherd.sh" "$@"'
+IGNORES=(cli.json service.json tui.jsonc '\.log' '\.env')
+
+if ! command -v stow >/dev/null 2>&1; then
+  echo "install.sh: GNU stow is required (pacman -S stow)" >&2
+  exit 1
+fi
 
 toplevel="$(git -C "$REPO_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
 if [ -z "$toplevel" ] || [ "$(cd "$toplevel" && pwd -P)" != "$(cd "$REPO_DIR" && pwd -P)" ]; then
   echo "install.sh: $REPO_DIR is not the root of a git checkout" >&2
   exit 1
 fi
-DEST="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-SHIM="$HOME/.local/bin/shepherd"
-SHIM_BODY='#!/usr/bin/env bash
-exec bash "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins/shepherd/scripts/shepherd.sh" "$@"'
 
 tmp=""
 changes=0
@@ -48,45 +54,56 @@ case "$dest_real/" in
     ;;
 esac
 
-tracked() {
-  git -C "$REPO_DIR" ls-files --error-unmatch -- "$1" >/dev/null 2>&1
-}
-
-while IFS= read -r -d '' rel; do
+# Copied files from an older install are replaced by links; a file that differs
+# from the repo is reported, not overwritten.
+conflicts=0
+while IFS= read -r rel; do
   src="$REPO_DIR/$rel"
   dest="$DEST/${rel#config/}"
 
-  if [ ! -e "$src" ] || [ "$src" -ef "$dest" ]; then
-    continue
-  fi
+  [ -L "$dest" ] && continue
+  [ -e "$dest" ] || continue
 
-  if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then
-    continue
+  if cmp -s "$src" "$dest"; then
+    rm -f "$dest"
+    changes=$((changes + 1))
+  else
+    echo "install.sh: $dest differs from $rel" >&2
+    conflicts=$((conflicts + 1))
   fi
-  if [ -d "$dest" ] && [ ! -L "$dest" ]; then
-    echo "skipped ${rel#config/} (a directory is in the way)" >&2
-    continue
-  fi
+done < <(git -C "$REPO_DIR" ls-files -- config)
 
-  mkdir -p "$(dirname "$dest")"
-  rm -f "$dest"
-  ln -s "$src" "$dest"
-  echo "linked ${rel#config/}"
-  changes=$((changes + 1))
-done < <(git -C "$REPO_DIR" ls-files -z -- config)
+if [ "$conflicts" -gt 0 ]; then
+  echo "Move your change into config/ (or revert it) and re-run." >&2
+  exit 1
+fi
 
-while IFS= read -r -d '' dest; do
-  target="$(readlink "$dest")"
+ignore_args=()
+for pattern in "${IGNORES[@]}"; do
+  ignore_args+=("--ignore=$pattern")
+done
+
+links_before="$(find "$DEST" -type l | wc -l | tr -d ' ')"
+stow --dir "$REPO_DIR" --target "$DEST" --restow --no-folding "${ignore_args[@]}" config
+
+# stow leaves a dangling link behind when its repo file is gone.
+while IFS= read -r -d '' link; do
+  target="$(readlink -m "$link")"
   case "$target" in
     "$SRC"/*)
-      if [ ! -e "$target" ] || ! tracked "${target#"$REPO_DIR"/}"; then
-        rm -f "$dest"
-        echo "unlinked ${dest#"$DEST"/}"
+      if [ ! -e "$target" ]; then
+        rm -f "$link"
+        echo "unlinked ${link#"$DEST"/}"
         changes=$((changes + 1))
       fi
       ;;
   esac
 done < <(find "$DEST" -type l -print0)
+
+links_after="$(find "$DEST" -type l | wc -l | tr -d ' ')"
+if [ "$links_before" != "$links_after" ]; then
+  changes=$((changes + 1))
+fi
 
 if [ -L "$SHIM" ] || [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
   mkdir -p "$(dirname "$SHIM")"

@@ -12,23 +12,23 @@ cd opencode-config
 ./install.sh
 ```
 
-The script links every file in `config/` into `~/.config/opencode/`, the way a dotfiles checkout
-works: each live file is a symlink to this repo, so what OpenCode reads is what git tracks. It is
-safe to re-run, and a run with nothing to do prints nothing.
+The script stows `config/` into `~/.config/opencode/` with GNU stow (`pacman -S stow`), the way a
+dotfiles checkout works: each live file is a symlink to this repo, so what OpenCode reads is what git
+tracks. It uses `--no-folding` and `--restow`, so a removed file loses its link. It is safe to
+re-run, and a run with nothing to do prints nothing.
 
 OpenCode writes its own runtime files into the same directory: `cli.json` (theme, verbosity), `service.json`, and herdr output. They are not in `config/`, so they stay real files and are never linked or touched. The model lives in OpenCode's state, not here.
 
 A file you delete from `config/` loses its link on the next run. Earlier versions left
-`~/opencode-config-backup-*` directories in `~`; delete them once. An edit you made in a live
-file and never ran `./sync.sh` for is replaced by the repo copy on the first run, so compare
-`diff -r config ~/.config/opencode` first.
+`~/opencode-config-backup-*` directories in `~`; delete them once. If a live copy differs from the
+repo, stow stops and names it: move the change into `config/` or revert it, then re-run. Check a
+machine you upgraded with `diff -r config ~/.config/opencode` before the first run.
 
 ## Change the config
 
 The live files point at this repo, so an edit written through a link is already a repo change.
 An editor that saves by renaming replaces the link with a plain file; the next `./install.sh`
 puts the repo copy back and drops that edit, so save in place or edit `config/` directly.
-A new file has to exist in `config/` and be `git add`ed before `./install.sh` can link it.
 Review the change and commit:
 
 ```sh
@@ -78,7 +78,7 @@ Herdr-generated files are machine-local and not tracked here.
 
 ## Not included
 
-Of the OpenCode config dir, only the files in `config/` are linked and tracked, so anything OpenCode writes beside them stays out of git: `service.json`, `cli.json` (theme, verbosity), `tui.jsonc`, herdr output, and logs. `.gitignore` blocks those names, `./install.sh` links tracked files only, and `tests/install_test.sh` fails if one is committed under `config/`.
+Of the OpenCode config dir, only the files in `config/` are linked and tracked, so anything OpenCode writes beside them stays out of git: `service.json`, `cli.json` (theme, verbosity), `tui.jsonc`, herdr output, and logs. `.gitignore` blocks those names, stow skips them (`--ignore`), and `tests/install_test.sh` fails if one is committed under `config/`.
 
 - Session history, credentials, and API keys stay in OpenCode's data dir.
 - Machine-specific paths. The config uses `~` and `$HOME`.
