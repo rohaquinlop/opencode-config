@@ -15,7 +15,7 @@ DEST="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 SHIM="$HOME/.local/bin/shepherd"
 SHIM_BODY='#!/usr/bin/env bash
 exec bash "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins/shepherd/scripts/shepherd.sh" "$@"'
-IGNORES=(cli.json service.json tui.jsonc '\.log' '\.env')
+IGNORES=(cli.json service.json tui.jsonc '\.log' '\.env' 'herdr-.*' 'herdr-opencode/.*')
 
 if ! command -v stow >/dev/null 2>&1; then
   echo "install.sh: GNU stow is required (pacman -S stow)" >&2
@@ -38,12 +38,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$DEST"
-
 if [ -L "$DEST" ]; then
   echo "install.sh: $DEST is a symlink; link a real directory instead" >&2
   exit 1
 fi
+
+mkdir -p "$DEST"
 
 dest_real="$(cd "$DEST" && pwd -P)"
 repo_real="$(cd "$REPO_DIR" && pwd -P)"
@@ -56,27 +56,31 @@ esac
 
 # Copied files from an older install are replaced by links; a file that differs
 # from the repo is reported, not overwritten.
-conflicts=0
+conflicts=()
 while IFS= read -r rel; do
   src="$REPO_DIR/$rel"
   dest="$DEST/${rel#config/}"
 
   [ -L "$dest" ] && continue
   [ -e "$dest" ] || continue
-
-  if cmp -s "$src" "$dest"; then
-    rm -f "$dest"
-    changes=$((changes + 1))
-  else
-    echo "install.sh: $dest differs from $rel" >&2
-    conflicts=$((conflicts + 1))
-  fi
+  cmp -s "$src" "$dest" || conflicts+=("${dest#"$DEST"/}")
 done < <(git -C "$REPO_DIR" ls-files -- config)
 
-if [ "$conflicts" -gt 0 ]; then
-  echo "Move your change into config/ (or revert it) and re-run." >&2
+if [ "${#conflicts[@]}" -gt 0 ]; then
+  printf 'install.sh: live file differs from the repo: %s\n' "${conflicts[@]}" >&2
+  echo "Move your change into config/ or delete the live file, then re-run." >&2
   exit 1
 fi
+
+while IFS= read -r rel; do
+  src="$REPO_DIR/$rel"
+  dest="$DEST/${rel#config/}"
+
+  [ -L "$dest" ] && continue
+  [ -e "$dest" ] || continue
+  rm -f "$dest"
+  changes=$((changes + 1))
+done < <(git -C "$REPO_DIR" ls-files -- config)
 
 ignore_args=()
 for pattern in "${IGNORES[@]}"; do
@@ -90,7 +94,7 @@ stow --dir "$REPO_DIR" --target "$DEST" --restow --no-folding "${ignore_args[@]}
 while IFS= read -r -d '' link; do
   target="$(readlink -m "$link")"
   case "$target" in
-    "$SRC"/*)
+    "$repo_real"/config/*)
       if [ ! -e "$target" ]; then
         rm -f "$link"
         echo "unlinked ${link#"$DEST"/}"

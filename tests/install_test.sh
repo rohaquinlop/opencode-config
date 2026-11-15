@@ -44,6 +44,17 @@ run_install() {
   env -u XDG_CONFIG_HOME HOME="$HOME_DIR" bash "$REPO_DIR/install.sh" "$@"
 }
 
+if command -v sha256sum >/dev/null 2>&1; then
+  HASH=(sha256sum)
+else
+  HASH=(shasum -a 256)
+fi
+
+snapshot() {
+  find "$LIVE" -type f -exec "${HASH[@]}" {} + 2>/dev/null | sort
+  find "$LIVE" -type l -exec readlink {} + | sort
+}
+
 link_count() {
   find "$LIVE" -type l | wc -l | tr -d ' '
 }
@@ -61,8 +72,10 @@ assert_contains "clean install reports work" "$out" "Done."
 assert_eq "the live file is the repo file" "$(same_yes "$REPO_DIR/config/AGENTS.md" "$LIVE/AGENTS.md")" "yes"
 assert_eq "every tracked file except the stow ignore file is linked" "$(expected_links)" "$(link_count)"
 
+before="$(snapshot)"
 out="$(run_install)"
 assert_eq "a second run prints nothing" "$out" ""
+assert_eq "a second run changes nothing" "$(snapshot)" "$before"
 
 rm -f "$LIVE/commands/jira.md"
 cp "$REPO_DIR/config/commands/jira.md" "$LIVE/commands/jira.md"
@@ -76,6 +89,7 @@ if out="$(run_install 2>&1)"; then
 fi
 assert_contains "the conflict names the file" "$out" "commands/jira.md"
 assert_eq "the differing file is kept" "$(cat "$LIVE/commands/jira.md")" "mine"
+assert_eq "the refused run linked nothing" "$(same_yes "$REPO_DIR/config/AGENTS.md" "$LIVE/AGENTS.md")" "yes"
 rm -f "$LIVE/commands/jira.md"
 run_install >/dev/null
 

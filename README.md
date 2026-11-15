@@ -21,14 +21,15 @@ OpenCode writes its own runtime files into the same directory: `cli.json` (theme
 
 A file you delete from `config/` loses its link on the next run. Earlier versions left
 `~/opencode-config-backup-*` directories in `~`; delete them once. If a live copy differs from the
-repo, stow stops and names it: move the change into `config/` or revert it, then re-run. Check a
-machine you upgraded with `diff -r config ~/.config/opencode` before the first run.
+repo, the installer stops and names it: move the change into `config/` or delete the live file, then
+re-run. It never overwrites one. Check a machine you upgraded with
+`diff -r config ~/.config/opencode` before the first run.
 
 ## Change the config
 
 The live files point at this repo, so an edit written through a link is already a repo change.
 An editor that saves by renaming replaces the link with a plain file; the next `./install.sh`
-puts the repo copy back and drops that edit, so save in place or edit `config/` directly.
+stops and names it, so save in place or edit `config/` directly.
 Review the change and commit:
 
 ```sh
