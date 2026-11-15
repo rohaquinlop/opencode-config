@@ -1,19 +1,51 @@
 #!/usr/bin/env bash
-# Copy this repository's config/ tree into ~/.config/opencode.
+# Copy this repository's config/ tree into the live OpenCode config dir.
 #
-# Existing files are moved to ~/.opencode-config-backup-<timestamp>/ first.
-# Nothing is deleted. Safe to re-run: identical files are skipped.
+# Missing files are installed. Files that differ are skipped unless --force is
+# given, because OpenCode writes some of them at runtime (theme, verbosity).
+# Forced replacements go to a backup tree under XDG_STATE_HOME; the last five
+# are kept.
 #
 # To capture changes made in the live config back into this repo, run
 # ./sync.sh.
 set -euo pipefail
 
+usage() {
+  cat <<'EOF'
+usage: install.sh [--force] [--dry-run]
+
+  (no flag)  install missing files, skip files that differ
+  --force    replace files that differ, after backing them up
+  --dry-run  print what would happen, change nothing
+EOF
+}
+
+force=0
+dry_run=0
+for arg in "$@"; do
+  case "$arg" in
+    --force) force=1 ;;
+    --dry-run) dry_run=1 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$REPO_DIR/config"
 DEST="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-BACKUP="$HOME/opencode-config-backup-$(date +%Y%m%d-%H%M%S)"
-
-mkdir -p "$DEST"
+BACKUP_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/opencode/config-backups"
+BACKUP="$BACKUP_ROOT/$(date +%Y%m%d-%H%M%S)"
+KEEP_BACKUPS=5
+SHIM="$HOME/.local/bin/shepherd"
+SHIM_BODY='#!/usr/bin/env bash
+exec bash "$HOME/.config/opencode/plugins/shepherd/scripts/shepherd.sh" "$@"'
 
 backup() {
   local dest="$1"
@@ -22,34 +54,79 @@ backup() {
   cp -a "$dest" "$BACKUP/$rel"
 }
 
+prune_backups() {
+  [ -d "$BACKUP_ROOT" ] || return 0
+  ls -1dt "$BACKUP_ROOT"/*/ 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | while IFS= read -r old; do
+    rm -rf "$old"
+  done
+}
+
+skipped=0
+
+if [ "$dry_run" -eq 0 ]; then
+  mkdir -p "$DEST"
+fi
+
 while IFS= read -r -d '' src; do
   rel="${src#"$SRC"/}"
   dest="$DEST/$rel"
-  mkdir -p "$(dirname "$dest")"
 
-  if [ -L "$dest" ]; then
-    backup "$dest"
-    rm -f "$dest"
-  elif [ -e "$dest" ] && cmp -s "$src" "$dest"; then
+  if [ ! -e "$dest" ] && [ ! -L "$dest" ]; then
+    if [ "$dry_run" -eq 1 ]; then
+      echo "would install $rel"
+    else
+      mkdir -p "$(dirname "$dest")"
+      cp -p "$src" "$dest"
+      echo "installed $rel"
+    fi
     continue
-  elif [ -e "$dest" ]; then
-    backup "$dest"
-    rm -f "$dest"
   fi
 
+  if [ -f "$dest" ] && [ ! -L "$dest" ] && cmp -s "$src" "$dest"; then
+    continue
+  fi
+
+  if [ "$dry_run" -eq 1 ]; then
+    echo "would replace $rel"
+    skipped=$((skipped + 1))
+    continue
+  fi
+
+  if [ "$force" -eq 0 ]; then
+    echo "skipped $rel (differs, use --force)"
+    skipped=$((skipped + 1))
+    continue
+  fi
+
+  mkdir -p "$(dirname "$dest")"
+  backup "$dest"
+  rm -f "$dest"
   cp -p "$src" "$dest"
-  echo "installed $rel"
+  echo "replaced $rel"
 done < <(find "$SRC" -type f -print0)
 
-# The shepherd CLI wrapper.
-mkdir -p "$HOME/.local/bin"
-cat >"$HOME/.local/bin/shepherd" <<'EOF'
-#!/usr/bin/env bash
-exec bash "$HOME/.config/opencode/plugins/shepherd/scripts/shepherd.sh" "$@"
-EOF
-chmod +x "$HOME/.local/bin/shepherd"
+if [ "$dry_run" -eq 0 ]; then
+  mkdir -p "$HOME/.local/bin"
+  if [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
+    printf '%s\n' "$SHIM_BODY" >"$SHIM"
+    chmod +x "$SHIM"
+    echo "installed .local/bin/shepherd"
+  fi
+fi
 
 if [ -d "$BACKUP" ]; then
-  echo "Backup: $BACKUP"
+  prune_backups
+  echo "Backups: $BACKUP (keeping the last $KEEP_BACKUPS)"
 fi
-echo "Done. Start a new OpenCode session, or run /reload."
+
+if [ "$skipped" -gt 0 ]; then
+  if [ "$dry_run" -eq 1 ]; then
+    echo "Dry run: $skipped file(s) would be replaced. Nothing changed."
+  else
+    echo "$skipped file(s) differ. Re-run with --force to replace them."
+  fi
+fi
+
+if [ "$dry_run" -eq 0 ]; then
+  echo "Done. Start a new OpenCode session, or run /reload."
+fi

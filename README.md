@@ -12,8 +12,16 @@ cd opencode-config
 ./install.sh
 ```
 
-The script copies every file in `config/` into `~/.config/opencode/`. Existing files are moved to
-`~/.opencode-config-backup-<timestamp>/` first. Nothing is deleted. It is safe to re-run.
+The script copies the files in `config/` into `~/.config/opencode/`. It installs missing files only.
+A file that differs from the repo is reported and left alone, because OpenCode writes some of them at
+runtime. It is safe to re-run.
+
+Use `--force` to replace differing files. A forced run moves them to
+`${XDG_STATE_HOME:-~/.local/state}/opencode/config-backups/<timestamp>/` first and keeps the last
+five. `--dry-run` prints what would change and writes nothing.
+
+After upgrading from the old installer, run `./install.sh --force` once to bring the live files in
+line with this repo.
 
 ## Capture changes
 
