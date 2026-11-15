@@ -49,7 +49,7 @@ printf '{"theme":{"name":"catppuccin-frappe"}}\n' >"$LIVE/cli.json"
 out="$(run_install)"
 assert_contains "clean install links files" "$out" "linked AGENTS.md"
 assert_eq "a linked file points at the repo" "$(readlink "$LIVE/AGENTS.md")" "$REPO_DIR/config/AGENTS.md"
-assert_eq "every repo file is linked" "$(find "$REPO_DIR/config" -type f | wc -l | tr -d ' ')" "$(find "$LIVE" -type l | wc -l | tr -d ' ')"
+assert_eq "every tracked repo file is linked" "$(git -C "$REPO_DIR" ls-files -- config | wc -l | tr -d ' ')" "$(find "$LIVE" -type l | wc -l | tr -d ' ')"
 
 before="$(snapshot)"
 out="$(run_install)"
@@ -73,6 +73,7 @@ assert_eq "runtime preferences are left alone" "$(cat "$LIVE/cli.json")" '{"them
 printf 'custom\n' >"$SHIM"
 run_install >/dev/null
 assert_contains "the shim points at the shepherd script" "$(cat "$SHIM")" "plugins/shepherd/scripts/shepherd.sh"
+assert_contains "the shim honours XDG_CONFIG_HOME" "$(cat "$SHIM")" "XDG_CONFIG_HOME"
 
 target="$SANDBOX/shim-target"
 printf 'target\n' >"$target"
