@@ -26,6 +26,7 @@ A file you delete from `config/` loses its link on the next run. Earlier version
 The live files point at this repo, so an edit written through a link is already a repo change.
 An editor that saves by renaming replaces the link with a plain file; the next `./install.sh`
 puts the repo copy back and drops that edit, so save in place or edit `config/` directly.
+A new file has to exist in `config/` and be `git add`ed before `./install.sh` can link it.
 Review the change and commit:
 
 ```sh
@@ -60,7 +61,7 @@ Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per pr
 
 - Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
 - Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
-- The model is per-machine: `opencode.json` does not set it. New sessions follow the model last picked with `/models` (the model-tiers sticky default); pick it once after the first run if a session still shows the old one.
+- The model is per-machine: `opencode.json` does not set it. New sessions are meant to follow the model last picked with `/models` (the model-tiers sticky default); if one still shows the old model after the first run, pick it once.
 
 ## Herdr
 

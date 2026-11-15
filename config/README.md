@@ -26,7 +26,7 @@ Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per pr
 
 - Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
 - Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
-- The model is per-machine: `opencode.json` does not set it. New sessions follow the model last picked with `/models` (the model-tiers sticky default); pick it once after the first run if a session still shows the old one.
+- The model is per-machine: `opencode.json` does not set it. New sessions are meant to follow the model last picked with `/models` (the model-tiers sticky default); if one still shows the old model after the first run, pick it once.
 
 ## Hooks
 

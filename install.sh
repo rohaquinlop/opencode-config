@@ -11,6 +11,11 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$REPO_DIR/config"
+
+if ! git -C "$REPO_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  echo "install.sh: $REPO_DIR is not a git checkout" >&2
+  exit 1
+fi
 DEST="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 SHIM="$HOME/.local/bin/shepherd"
 SHIM_BODY='#!/usr/bin/env bash
@@ -36,6 +41,10 @@ while IFS= read -r -d '' rel; do
   src="$REPO_DIR/$rel"
   dest="$DEST/${rel#config/}"
 
+  if [ ! -e "$src" ]; then
+    continue
+  fi
+
   if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then
     continue
   fi
@@ -54,8 +63,8 @@ done < <(git -C "$REPO_DIR" ls-files -z -- config)
 while IFS= read -r -d '' dest; do
   target="$(readlink "$dest")"
   case "$target" in
-    "$REPO_DIR"/config/*)
-      if ! tracked "${target#"$REPO_DIR"/}"; then
+    "$SRC"/*)
+      if [ ! -e "$target" ] || ! tracked "${target#"$REPO_DIR"/}"; then
         rm -f "$dest"
         echo "unlinked ${dest#"$DEST"/}"
         changes=$((changes + 1))

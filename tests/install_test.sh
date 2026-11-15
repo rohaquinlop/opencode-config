@@ -4,7 +4,8 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SANDBOX="$(mktemp -d)"
-trap 'rm -rf "$SANDBOX"' EXIT
+stray=""
+trap 'rm -rf "$SANDBOX"; [ -z "$stray" ] || rm -f "$stray"' EXIT
 
 HOME_DIR="$SANDBOX/home"
 LIVE="$HOME_DIR/.config/opencode"
@@ -66,6 +67,18 @@ ln -s "$REPO_DIR/config/commands/gone.md" "$LIVE/commands-gone-link.md"
 out="$(run_install)"
 assert_contains "a link to a removed repo file is dropped" "$out" "unlinked commands-gone-link.md"
 [ -L "$LIVE/commands-gone-link.md" ] && fail "the stale link still exists"
+
+if [ ! -e "$REPO_DIR/config/tui.jsonc" ]; then
+  stray="$REPO_DIR/config/tui.jsonc"
+  printf 'machine local\n' >"$stray"
+  out="$(run_install)"
+  [ -L "$LIVE/tui.jsonc" ] && fail "an untracked file was linked"
+  ln -s "$stray" "$LIVE/tui.jsonc"
+  out="$(run_install)"
+  assert_contains "a link to an untracked repo file is dropped" "$out" "unlinked tui.jsonc"
+  rm -f "$REPO_DIR/config/tui.jsonc"
+  stray=""
+fi
 
 assert_eq "runtime files are left alone" "$(cat "$LIVE/service.json")" '{"password":"keep"}'
 assert_eq "runtime preferences are left alone" "$(cat "$LIVE/cli.json")" '{"theme":{"name":"catppuccin-frappe"}}'
