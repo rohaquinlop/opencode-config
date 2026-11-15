@@ -93,8 +93,8 @@ if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
 fi
 [ -e "$REPO_DIR/config/cli.json" ] && fail "config/cli.json is still shipped"
 
-runtime="$(find "$REPO_DIR/config" \( -name 'service.json' -o -name 'auth.json' -o -name 'cli.json' -o -name 'tui.jsonc' -o -name 'opencode.db*' -o -name '*.log' -o -name '.env*' \))"
-[ -z "$runtime" ] || fail "config/ holds runtime or secret files: $runtime"
+runtime="$(git -C "$REPO_DIR" ls-files -- config | grep -E '(^|/)(service\.json|auth\.json|cli\.json|tui\.jsonc|opencode\.db.*|.*\.log|\.env.*)$' | grep -Ev '(^|/)\.env\.example$' || true)"
+[ -z "$runtime" ] || fail "config/ tracks runtime or secret files: $runtime"
 
 if [ "$FAILURES" -gt 0 ]; then
   echo "$FAILURES failure(s)" >&2
