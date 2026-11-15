@@ -125,11 +125,15 @@ assert_contains "the replaced shim is backed up" "$(find "$BACKUP_ROOT" -path '*
 
 target="$SANDBOX/shim-target"
 printf 'target\n' >"$target"
+rm -rf "$BACKUP_ROOT"/*/.local
 rm -f "$HOME_DIR/.local/bin/shepherd"
 ln -s "$target" "$HOME_DIR/.local/bin/shepherd"
 run_install --force >/dev/null
 assert_eq "force never writes through a shim symlink" "$(cat "$target")" "target"
 [ -L "$HOME_DIR/.local/bin/shepherd" ] && fail "the shim is still a symlink"
+backup_shim="$(find "$BACKUP_ROOT" -path '*/.local/bin/shepherd' -print -quit)"
+[ -L "$backup_shim" ] && fail "the backed-up shim is still a symlink"
+assert_contains "the backed-up shim holds the target content" "$(cat "$backup_shim")" "target"
 
 if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
   fail "config/opencode.json still pins a model"

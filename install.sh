@@ -122,7 +122,9 @@ if [ ! -f "$SHIM" ]; then
 elif [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
   if [ "$force" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
     mkdir -p "$BACKUP/.local/bin"
-    cp -a "$SHIM" "$BACKUP/.local/bin/shepherd"
+    if ! cp -pL "$SHIM" "$BACKUP/.local/bin/shepherd" 2>/dev/null; then
+      cp -P "$SHIM" "$BACKUP/.local/bin/shepherd"
+    fi
     rm -f "$SHIM"
     printf '%s\n' "$SHIM_BODY" >"$SHIM"
     chmod +x "$SHIM"
