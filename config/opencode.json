@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "model": "xiaomi-token-plan-sgp/mimo-v2.6-pro",
-  "update": "disable"
+  "update": "disable",
+  "experimental": { "todo": true }
 }
