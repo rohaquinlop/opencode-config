@@ -29,7 +29,8 @@ re-run. It never overwrites one. Check a machine you upgraded with
 
 The live files point at this repo, so an edit written through a link is already a repo change.
 An editor that saves by renaming replaces the link with a plain file; the next `./install.sh`
-stops and names it, so save in place or edit `config/` directly.
+re-links it when the content matches, and stops and names it when the content differs. Save in place,
+or edit `config/` directly.
 Review the change and commit:
 
 ```sh

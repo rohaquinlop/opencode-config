@@ -10,7 +10,6 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC="$REPO_DIR/config"
 DEST="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 SHIM="$HOME/.local/bin/shepherd"
 SHIM_BODY='#!/usr/bin/env bash
@@ -57,13 +56,18 @@ esac
 # Copied files from an older install are replaced by links; a file that differs
 # from the repo is reported, not overwritten.
 conflicts=()
+identical=()
 while IFS= read -r rel; do
-  src="$REPO_DIR/$rel"
   dest="$DEST/${rel#config/}"
 
   [ -L "$dest" ] && continue
   [ -e "$dest" ] || continue
-  cmp -s "$src" "$dest" || conflicts+=("${dest#"$DEST"/}")
+
+  if cmp -s "$REPO_DIR/$rel" "$dest"; then
+    identical+=("$dest")
+  else
+    conflicts+=("${dest#"$DEST"/}")
+  fi
 done < <(git -C "$REPO_DIR" ls-files -- config)
 
 if [ "${#conflicts[@]}" -gt 0 ]; then
@@ -72,15 +76,12 @@ if [ "${#conflicts[@]}" -gt 0 ]; then
   exit 1
 fi
 
-while IFS= read -r rel; do
-  src="$REPO_DIR/$rel"
-  dest="$DEST/${rel#config/}"
-
-  [ -L "$dest" ] && continue
-  [ -e "$dest" ] || continue
-  rm -f "$dest"
-  changes=$((changes + 1))
-done < <(git -C "$REPO_DIR" ls-files -- config)
+if [ "${#identical[@]}" -gt 0 ]; then
+  for dest in "${identical[@]}"; do
+    rm -f "$dest"
+    changes=$((changes + 1))
+  done
+fi
 
 ignore_args=()
 for pattern in "${IGNORES[@]}"; do

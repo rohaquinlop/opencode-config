@@ -82,16 +82,21 @@ cp "$REPO_DIR/config/commands/jira.md" "$LIVE/commands/jira.md"
 run_install >/dev/null
 assert_eq "an identical copy becomes a link" "$(same_yes "$REPO_DIR/config/commands/jira.md" "$LIVE/commands/jira.md")" "yes"
 
+rm -f "$LIVE/commands/slack.md"
+cp "$REPO_DIR/config/commands/slack.md" "$LIVE/commands/slack.md"
 rm -f "$LIVE/commands/jira.md"
 printf 'mine\n' >"$LIVE/commands/jira.md"
+before="$(snapshot)"
 if out="$(run_install 2>&1)"; then
   fail "a differing copy should stop the run"
 fi
 assert_contains "the conflict names the file" "$out" "commands/jira.md"
 assert_eq "the differing file is kept" "$(cat "$LIVE/commands/jira.md")" "mine"
-assert_eq "the refused run linked nothing" "$(same_yes "$REPO_DIR/config/AGENTS.md" "$LIVE/AGENTS.md")" "yes"
+assert_eq "the refused run changes nothing" "$(snapshot)" "$before"
+[ -L "$LIVE/commands/slack.md" ] && fail "the refused run removed an identical copy"
 rm -f "$LIVE/commands/jira.md"
 run_install >/dev/null
+assert_eq "the identical copy becomes a link" "$(same_yes "$REPO_DIR/config/commands/slack.md" "$LIVE/commands/slack.md")" "yes"
 
 ln -s "$REPO_DIR/config/commands/gone.md" "$LIVE/commands-gone-link.md"
 run_install >/dev/null
