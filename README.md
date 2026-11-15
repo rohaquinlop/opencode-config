@@ -23,8 +23,10 @@ A file you delete from `config/` loses its link on the next run. Earlier version
 
 ## Change the config
 
-The live files point at this repo, so an edit made in `~/.config/opencode/` is already a repo change.
-Review it and commit:
+The live files point at this repo, so an edit written through a link is already a repo change.
+An editor that saves by renaming replaces the link with a plain file; the next `./install.sh`
+puts the repo copy back and drops that edit, so save in place or edit `config/` directly.
+Review the change and commit:
 
 ```sh
 git status

@@ -60,7 +60,7 @@ while IFS= read -r -d '' dest; do
   esac
 done < <(find "$DEST" -type l -print0)
 
-if [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
+if [ -L "$SHIM" ] || [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
   mkdir -p "$(dirname "$SHIM")"
   tmp="$SHIM.tmp.$$"
   printf '%s\n' "$SHIM_BODY" >"$tmp"

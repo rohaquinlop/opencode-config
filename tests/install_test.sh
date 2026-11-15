@@ -11,6 +11,12 @@ LIVE="$HOME_DIR/.config/opencode"
 SHIM="$HOME_DIR/.local/bin/shepherd"
 FAILURES=0
 
+if command -v sha256sum >/dev/null 2>&1; then
+  HASH=(sha256sum)
+else
+  HASH=(shasum -a 256)
+fi
+
 fail() {
   echo "FAIL: $1" >&2
   FAILURES=$((FAILURES + 1))
@@ -31,6 +37,11 @@ run_install() {
   env -u XDG_CONFIG_HOME HOME="$HOME_DIR" bash "$REPO_DIR/install.sh" "$@"
 }
 
+snapshot() {
+  find "$SANDBOX" -type f -exec "${HASH[@]}" {} + | sort
+  find "$SANDBOX" -type l -exec readlink {} + | sort
+}
+
 mkdir -p "$LIVE"
 printf '{"password":"keep"}\n' >"$LIVE/service.json"
 printf '{"theme":{"name":"catppuccin-frappe"}}\n' >"$LIVE/cli.json"
@@ -40,10 +51,10 @@ assert_contains "clean install links files" "$out" "linked AGENTS.md"
 assert_eq "a linked file points at the repo" "$(readlink "$LIVE/AGENTS.md")" "$REPO_DIR/config/AGENTS.md"
 assert_eq "every repo file is linked" "$(find "$REPO_DIR/config" -type f | wc -l | tr -d ' ')" "$(find "$LIVE" -type l | wc -l | tr -d ' ')"
 
-before="$(ls -laR "$SANDBOX" | sha256sum)"
+before="$(snapshot)"
 out="$(run_install)"
 assert_eq "a second run prints nothing" "$out" ""
-assert_eq "a second run changes nothing" "$(ls -laR "$SANDBOX" | sha256sum)" "$before"
+assert_eq "a second run changes nothing" "$(snapshot)" "$before"
 
 rm -f "$LIVE/AGENTS.md"
 printf 'live only\n' >"$LIVE/AGENTS.md"
@@ -70,6 +81,12 @@ ln -s "$target" "$SHIM"
 run_install >/dev/null
 assert_eq "the shim is written as a file, not through a symlink" "$(cat "$target")" "target"
 [ -L "$SHIM" ] && fail "the shim is still a symlink"
+
+cp "$SHIM" "$SANDBOX/shim-copy"
+rm -f "$SHIM"
+ln -s "$SANDBOX/shim-copy" "$SHIM"
+run_install >/dev/null
+[ -L "$SHIM" ] && fail "a matching symlinked shim was left as a link"
 
 if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
   fail "config/opencode.json still pins a model"
