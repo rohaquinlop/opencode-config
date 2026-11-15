@@ -49,9 +49,10 @@ Keep the work visible with the `todowrite` tool: after stage 0, create a list wi
 stage heading. Update the list when you enter or finish a stage: the current stage's item is
 `in_progress`, finished stages are `completed`. A `waiting_*` phase is not a stage, so the current
 item stays `in_progress` there. Moving back to an earlier stage reopens its item as `in_progress`.
-Delete the item for a stage the run will not enter: stage 7 when no hosted reviewer applies, and
-stages 2-8 when study finds nothing to implement. If the `todowrite` tool is not available, continue
-without it.
+Mark the item `cancelled` for a stage the run will not enter: stage 7 when no hosted reviewer
+applies, stage 2 when the source is an existing PR, and stages 2-8 when study finds nothing to
+implement. Reopen a cancelled item if its stage is entered later. If the `todowrite` tool is not
+available, continue without it.
 
 ## 0. Start or resume
 
