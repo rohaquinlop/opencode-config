@@ -14,6 +14,10 @@ default.
 An optional `overrides` block replaces one agent's spec for one provider
 (`overrides.<agent>.<provider>`), used to keep per-agent DeepSeek choices.
 
+Wildcard rule: prefer the exact base id, then non-snapshot ids (no trailing
+`-<6+ digits>` date stamp), then the highest version by numeric-aware compare
+(so `4-10` beats `4-9`).
+
 Mapped subagents inherit the parent session's model, then a
 `experimental.model.resolve` hook substitutes the tier's model **of the same
 provider as the running model**. Adding a subscription later means adding one
@@ -31,9 +35,12 @@ request time.
 
 ## Sticky default
 
-The latest model used by a non-mapped agent (a session's `/models` pick) is
-recorded and applied as the catalog default, because OpenCode does not persist
-`/models` picks across sessions. New sessions start on it.
+The latest model used by a non-mapped agent is recorded and applied as the
+catalog default, because OpenCode does not persist `/models` picks across
+sessions. New sessions start on it. The trigger is broad on purpose: any
+request of a non-mapped agent counts (a `/models` pick, an
+`opencode run --model ...` run), matching "the latest model I set should
+remain". The resolve event exposes no narrower signal.
 
 ## Log
 
