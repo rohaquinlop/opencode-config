@@ -27,8 +27,10 @@ while IFS= read -r -d '' src; do
   fi
 
   mkdir -p "$(dirname "$dest")"
+  tmp="$dest.tmp.$$"
+  cp -p "$src" "$tmp"
   rm -f "$dest"
-  cp -p "$src" "$dest"
+  mv -f "$tmp" "$dest"
   echo "installed $rel"
 done < <(find "$SRC" -type f -print0)
 
