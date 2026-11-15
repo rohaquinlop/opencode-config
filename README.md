@@ -12,8 +12,8 @@ cd opencode-config
 ./install.sh
 ```
 
-The script mirrors `config/` into `~/.config/opencode/`: the repo owns these files, so a file that
-differs is replaced. OpenCode's own runtime state (theme, verbosity, model) lives outside this tree
+The script copies `config/` into `~/.config/opencode/` and replaces files that differ: the repo owns
+these files. OpenCode's own runtime state (theme, verbosity, model) lives outside this tree
 and is not touched. It is safe to re-run, and it makes no backups.
 
 Earlier versions left `~/opencode-config-backup-*` directories in `~`. Delete them once.

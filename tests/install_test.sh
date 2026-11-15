@@ -60,7 +60,7 @@ assert_eq "clean install writes nothing outside the config dir and the shim" "$(
 
 before="$(tree_hash "$SANDBOX")"
 out="$(run_install)"
-assert_not_contains "a second run installs nothing" "$out" "installed"
+assert_eq "a second run prints nothing" "$out" ""
 assert_eq "a second run changes nothing" "$(tree_hash "$SANDBOX")" "$before"
 
 echo "live edit" >>"$LIVE/AGENTS.md"

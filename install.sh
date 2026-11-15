@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mirror this repository's config/ tree into the live OpenCode config dir.
+# Copy this repository's config/ tree into the live OpenCode config dir.
 #
 # The repo owns these files: a live copy that differs is replaced. Runtime state
 # that OpenCode writes itself (theme, verbosity, model) is not shipped, so it
@@ -16,6 +16,16 @@ SHIM="$HOME/.local/bin/shepherd"
 SHIM_BODY='#!/usr/bin/env bash
 exec bash "$HOME/.config/opencode/plugins/shepherd/scripts/shepherd.sh" "$@"'
 
+tmp=""
+installed=0
+
+cleanup() {
+  if [ -n "$tmp" ]; then
+    rm -f "$tmp"
+  fi
+}
+trap cleanup EXIT
+
 mkdir -p "$DEST"
 
 while IFS= read -r -d '' src; do
@@ -29,17 +39,23 @@ while IFS= read -r -d '' src; do
   mkdir -p "$(dirname "$dest")"
   tmp="$dest.tmp.$$"
   cp -p "$src" "$tmp"
-  rm -f "$dest"
   mv -f "$tmp" "$dest"
+  tmp=""
   echo "installed $rel"
+  installed=$((installed + 1))
 done < <(find "$SRC" -type f -print0)
 
 if [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
   mkdir -p "$(dirname "$SHIM")"
-  rm -f "$SHIM"
-  printf '%s\n' "$SHIM_BODY" >"$SHIM"
-  chmod +x "$SHIM"
+  tmp="$SHIM.tmp.$$"
+  printf '%s\n' "$SHIM_BODY" >"$tmp"
+  chmod +x "$tmp"
+  mv -f "$tmp" "$SHIM"
+  tmp=""
   echo "installed .local/bin/shepherd"
+  installed=$((installed + 1))
 fi
 
-echo "Done. Start a new OpenCode session, or run /reload."
+if [ "$installed" -gt 0 ]; then
+  echo "Done. Start a new OpenCode session, or run /reload."
+fi
