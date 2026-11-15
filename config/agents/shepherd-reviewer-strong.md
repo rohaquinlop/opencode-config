@@ -1,7 +1,6 @@
 ---
 description: Stronger fresh reviewer for the first pre-PR round of the shepherd workflow. Use only for round 1 calls 2 and later, and plan review calls 2 and later. Reviews one bundle against the target branch's rules and returns actionable findings, "current at <sha>", or "plan current".
 mode: subagent
-model: deepseek/deepseek-flash#max
 permissions:
   - action: "*"
     resource: "*"

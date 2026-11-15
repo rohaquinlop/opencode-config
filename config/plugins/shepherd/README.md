@@ -18,10 +18,12 @@ study → brief → implement → targeted checks → fresh read-only review (ma
 
 ## Reviewers
 
-| Agent | Model | Used for |
+| Agent | Tier | Used for |
 | --- | --- | --- |
-| `shepherd-reviewer` | `deepseek/deepseek-flash#low` | Routine reviews, round 2+, verify calls, when a PR exists |
-| `shepherd-reviewer-strong` | `deepseek/deepseek-flash#max` | Round 1 pre-PR calls 2+, plan review calls 2+ |
+| `shepherd-reviewer` | routine | Routine reviews, round 2+, verify calls, when a PR exists |
+| `shepherd-reviewer-strong` | strong | Round 1 pre-PR calls 2+, plan review calls 2+ |
+
+Tier models come from `plugins/model-tiers/tiers.json`.
 
 ## State
 

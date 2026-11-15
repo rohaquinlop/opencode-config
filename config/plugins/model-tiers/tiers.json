@@ -1,0 +1,23 @@
+{
+  "agents": {
+    "codebase-scout": "routine",
+    "shepherd-reviewer": "routine",
+    "shepherd-reviewer-strong": "strong",
+    "senior-code-reviewer": "strong"
+  },
+  "overrides": {
+    "shepherd-reviewer-strong": { "deepseek": "deepseek-flash#max" }
+  },
+  "tiers": {
+    "routine": {
+      "xiaomi-token-plan-sgp": "mimo-v2.6-flash",
+      "anthropic": "claude-haiku-*",
+      "deepseek": "deepseek-flash#low"
+    },
+    "strong": {
+      "xiaomi-token-plan-sgp": "mimo-v2.6-pro",
+      "anthropic": "claude-opus-*",
+      "deepseek": "deepseek-v4-pro"
+    }
+  }
+}

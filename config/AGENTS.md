@@ -96,9 +96,10 @@
   regardless of fork vs. fresh — asking for a summary is what actually saves
   tokens.
 - For simple/mechanical subagent work (recon, straightforward lookups,
-  boilerplate generation), select the light agent (`codebase-scout` or a
-  `deepseek-flash` model) explicitly rather than inheriting the parent's model.
-- Reserve full-capability (`deepseek-v4-pro`-tier) subagents for tasks that
+  boilerplate generation), spawn `codebase-scout` explicitly rather than
+  inheriting the parent's model; its model tier is applied from
+  `plugins/model-tiers/tiers.json`.
+- Reserve strong-tier subagents for tasks that
   need real reasoning: adversarial verification, ambiguous design tradeoffs,
   genuinely independent review.
 - Don't run a second validation pass on something already verified directly

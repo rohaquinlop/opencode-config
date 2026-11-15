@@ -6,11 +6,12 @@ Personal OpenCode V2 configuration. Inspired by several agent-driven development
 
 | Path | What |
 | --- | --- |
-| `opencode.json` | default model `deepseek/deepseek-flash`, updates disabled |
+| `opencode.json` | default model `xiaomi-token-plan-sgp/mimo-v2.6-pro`, updates disabled |
 | `AGENTS.md` | global instructions |
 | `plugins/be-terse/` | appends a style instruction to every root-session prompt |
 | `plugins/shepherd/` | pre-push gate, diagnosis guard, session resume, stop nudge, CLI |
 | `plugins/deepseek-cache/` | date/env freeze, telemetry, prefix guard, deterministic compaction |
+| `plugins/model-tiers/` | per-provider tier map for subagent models, sticky model default |
 | `plugins/workflow-hooks/` | destructive-git block, Python edit checks, Python stop gate |
 | `agents/` | `codebase-scout`, `senior-code-reviewer`, `web-research-synthesizer`, `shepherd-reviewer*` |
 | `skills/` | git-commit, create-pr, handoff, jira, slack, ship, bro, poc-codebase-review, system-map, shepherd-* |
@@ -21,10 +22,11 @@ The shepherd CLI is on PATH as `shepherd` (`~/.local/bin/shepherd`). It writes s
 
 ## Models
 
-- Default: `deepseek/deepseek-flash`.
-- `shepherd-reviewer`: `deepseek/deepseek-flash#low` for routine reviews and verify calls.
-- `shepherd-reviewer-strong`: `deepseek/deepseek-flash#max` for round 1 pre-PR calls 2+ and plan review calls 2+.
-- `senior-code-reviewer`: `deepseek/deepseek-v4-pro`.
+Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per provider) and follow the provider of the currently running model.
+
+- Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
+- Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
+- Default: `xiaomi-token-plan-sgp/mimo-v2.6-pro`. The latest model picked with `/models` becomes the default for new sessions.
 
 ## Hooks
 

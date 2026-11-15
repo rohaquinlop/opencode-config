@@ -1,7 +1,6 @@
 ---
 description: Read-only code reconnaissance. Locates where relevant code lives, maps dependencies, and returns a structured report. Use before implementation, debugging, or refactoring.
 mode: subagent
-model: deepseek/deepseek-flash
 permissions:
   - action: "*"
     resource: "*"
