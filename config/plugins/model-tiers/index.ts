@@ -79,6 +79,25 @@ function variantDeclared(model: any, variant: string | undefined): boolean {
   return declared.some((v) => (typeof v === "string" ? v : v?.id) === variant)
 }
 
+function isSnapshot(id: string): boolean {
+  return /-\d{6,}$/.test(id)
+}
+
+function compareVersions(a: string, b: string): number {
+  const pa = a.match(/\d+|\D+/g) ?? []
+  const pb = b.match(/\d+|\D+/g) ?? []
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const x = pa[i] ?? ""
+    const y = pb[i] ?? ""
+    if (x === y) continue
+    const nx = /^\d/.test(x)
+    const ny = /^\d/.test(y)
+    if (nx && ny) return Number(x) - Number(y)
+    return x < y ? -1 : 1
+  }
+  return 0
+}
+
 function resolveSpec(spec: Spec, providerID: string, models: readonly any[]): ModelRef | undefined {
   const { id, variant } = parseSpec(spec)
   const pool = models.filter((m) => m?.providerID === providerID)
@@ -87,9 +106,11 @@ function resolveSpec(spec: Spec, providerID: string, models: readonly any[]): Mo
     const prefix = id.slice(0, -1)
     const base = prefix.replace(/[-_ ]+$/, "")
     const hits = pool.filter((m) => typeof m?.id === "string" && m.id.startsWith(prefix))
+    const candidates = hits.filter((m) => !isSnapshot(String(m.id)))
+    const field = candidates.length ? candidates : hits
     match =
-      hits.find((m) => m.id === base) ??
-      hits.sort((a, b) => String(a.id).localeCompare(String(b.id))).at(-1)
+      field.find((m) => m.id === base) ??
+      field.reduce((best: any, m: any) => (compareVersions(String(m.id), String(best.id)) > 0 ? m : best))
   } else {
     match = pool.find((m) => m?.id === id)
   }
@@ -153,8 +174,12 @@ export default Plugin.define({
 
         if (tier && spec) {
           const models = await catalog()
+          if (!models.length) {
+            logOnce(String(event.agent), { event: "resolve", reason: "catalog-empty", providerID, id })
+            return
+          }
           const wanted = parseSpec(spec)
-          const resolved = models.length ? resolveSpec(spec, providerID, models) : { providerID, id: wanted.id }
+          const resolved = resolveSpec(spec, providerID, models)
           if (resolved) {
             event.model = {
               providerID: resolved.providerID,
@@ -163,13 +188,7 @@ export default Plugin.define({
             }
             logOnce(String(event.agent), {
               event: "resolve",
-              reason: models.length
-                ? override
-                  ? "override"
-                  : wanted.variant && !resolved.variant
-                    ? "tier-variant-dropped"
-                    : "tier"
-                : "catalog-empty",
+              reason: override ? "override" : wanted.variant && !resolved.variant ? "tier-variant-dropped" : "tier",
               providerID: resolved.providerID,
               id: resolved.id,
               variant: resolved.variant ?? null,
