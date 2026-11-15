@@ -105,12 +105,14 @@ function resolveSpec(spec: Spec, providerID: string, models: readonly any[]): Mo
   if (id.endsWith("*")) {
     const prefix = id.slice(0, -1)
     const base = prefix.replace(/[-_ ]+$/, "")
-    const hits = pool.filter((m) => typeof m?.id === "string" && m.id.startsWith(prefix))
+    const hits = pool.filter((m) => typeof m?.id === "string" && (m.id === base || m.id.startsWith(prefix)))
     const candidates = hits.filter((m) => !isSnapshot(String(m.id)))
     const field = candidates.length ? candidates : hits
     match =
       field.find((m) => m.id === base) ??
-      field.reduce((best: any, m: any) => (compareVersions(String(m.id), String(best.id)) > 0 ? m : best))
+      (field.length
+        ? field.reduce((best: any, m: any) => (compareVersions(String(m.id), String(best.id)) > 0 ? m : best))
+        : undefined)
   } else {
     match = pool.find((m) => m?.id === id)
   }
@@ -188,7 +190,7 @@ export default Plugin.define({
             }
             logOnce(String(event.agent), {
               event: "resolve",
-              reason: override ? "override" : wanted.variant && !resolved.variant ? "tier-variant-dropped" : "tier",
+              reason: wanted.variant && !resolved.variant ? "tier-variant-dropped" : override ? "override" : "tier",
               providerID: resolved.providerID,
               id: resolved.id,
               variant: resolved.variant ?? null,
