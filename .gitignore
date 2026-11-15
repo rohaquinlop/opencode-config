@@ -1,11 +1,8 @@
 service.json
-auth.json
 *.log
 .env
 .env.*
 !.env.example
-opencode.db
-opencode.db-*
 config/cli.json
 config/plugins/herdr-agent-state.js
 config/herdr-tui-session.js

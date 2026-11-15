@@ -38,10 +38,15 @@ if [ -L "$DEST" ]; then
   echo "install.sh: $DEST is a symlink; link a real directory instead" >&2
   exit 1
 fi
-if [ "$(cd "$DEST" && pwd -P)" = "$(cd "$SRC" && pwd -P)" ]; then
-  echo "install.sh: $DEST resolves into $SRC; refusing" >&2
-  exit 1
-fi
+
+dest_real="$(cd "$DEST" && pwd -P)"
+repo_real="$(cd "$REPO_DIR" && pwd -P)"
+case "$dest_real/" in
+  "$repo_real"/*)
+    echo "install.sh: $DEST is inside $REPO_DIR; refusing to link a tree into itself" >&2
+    exit 1
+    ;;
+esac
 
 tracked() {
   git -C "$REPO_DIR" ls-files --error-unmatch -- "$1" >/dev/null 2>&1

@@ -81,6 +81,15 @@ ln -s "$CLONE/config/tui.jsonc" "$CLONE_HOME/.config/opencode/tui.jsonc"
 out="$(env -u XDG_CONFIG_HOME HOME="$CLONE_HOME" bash "$CLONE/install.sh")"
 assert_contains "a link to an untracked repo file is dropped" "$out" "unlinked tui.jsonc"
 
+SELF="$SANDBOX/self/.config/opencode"
+mkdir -p "$SANDBOX/self/.config"
+git clone -q "$REPO_DIR" "$SELF"
+cp "$REPO_DIR/install.sh" "$SELF/install.sh"
+if env -u XDG_CONFIG_HOME HOME="$SANDBOX/self" bash "$SELF/install.sh" >/dev/null 2>&1; then
+  fail "install.sh linked a checkout that sits at its own live path"
+fi
+[ -e "$SELF/config/AGENTS.md" ] || fail "the refused run deleted repo files"
+
 assert_eq "runtime files are left alone" "$(cat "$LIVE/service.json")" '{"password":"keep"}'
 assert_eq "runtime preferences are left alone" "$(cat "$LIVE/cli.json")" '{"theme":{"name":"catppuccin-frappe"}}'
 
@@ -108,7 +117,7 @@ if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
 fi
 [ -e "$REPO_DIR/config/cli.json" ] && fail "config/cli.json is still shipped"
 
-runtime="$(git -C "$REPO_DIR" ls-files -- config | grep -E '(^|/)(service\.json|auth\.json|cli\.json|tui\.jsonc|opencode\.db.*|.*\.log|\.env.*)$' | grep -Ev '(^|/)\.env\.example$' || true)"
+runtime="$(git -C "$REPO_DIR" ls-files -- config | grep -E '(^|/)(service\.json|auth\.json|cli\.json|tui\.jsonc|opencode\.db.*|herdr|.*\.log|\.env.*)' | grep -Ev '(^|/)\.env\.example$' || true)"
 [ -z "$runtime" ] || fail "config/ tracks runtime or secret files: $runtime"
 
 if [ "$FAILURES" -gt 0 ]; then
