@@ -121,6 +121,15 @@ assert_contains "plain run skips a custom shim" "$out" "skipped .local/bin/sheph
 assert_eq "custom shim is kept" "$(cat "$HOME_DIR/.local/bin/shepherd")" "custom"
 run_install --force >/dev/null
 assert_contains "force replaces the shim" "$(cat "$HOME_DIR/.local/bin/shepherd")" "plugins/shepherd/scripts/shepherd.sh"
+assert_contains "the replaced shim is backed up" "$(find "$BACKUP_ROOT" -path '*/.local/bin/shepherd' -exec cat {} +)" "custom"
+
+target="$SANDBOX/shim-target"
+printf 'target\n' >"$target"
+rm -f "$HOME_DIR/.local/bin/shepherd"
+ln -s "$target" "$HOME_DIR/.local/bin/shepherd"
+run_install --force >/dev/null
+assert_eq "force never writes through a shim symlink" "$(cat "$target")" "target"
+[ -L "$HOME_DIR/.local/bin/shepherd" ] && fail "the shim is still a symlink"
 
 if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
   fail "config/opencode.json still pins a model"

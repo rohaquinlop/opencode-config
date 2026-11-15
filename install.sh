@@ -114,12 +114,16 @@ if [ ! -f "$SHIM" ]; then
     echo "would install .local/bin/shepherd"
   else
     mkdir -p "$HOME/.local/bin"
+    rm -f "$SHIM"
     printf '%s\n' "$SHIM_BODY" >"$SHIM"
     chmod +x "$SHIM"
     echo "installed .local/bin/shepherd"
   fi
 elif [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
   if [ "$force" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
+    mkdir -p "$BACKUP/.local/bin"
+    cp -a "$SHIM" "$BACKUP/.local/bin/shepherd"
+    rm -f "$SHIM"
     printf '%s\n' "$SHIM_BODY" >"$SHIM"
     chmod +x "$SHIM"
     echo "replaced .local/bin/shepherd"
