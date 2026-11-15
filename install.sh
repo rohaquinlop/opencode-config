@@ -109,7 +109,7 @@ while IFS= read -r -d '' src; do
   echo "replaced $rel"
 done < <(find "$SRC" -type f -print0)
 
-if [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
+if [ ! -f "$SHIM" ]; then
   if [ "$dry_run" -eq 1 ]; then
     echo "would install .local/bin/shepherd"
   else
@@ -118,9 +118,24 @@ if [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
     chmod +x "$SHIM"
     echo "installed .local/bin/shepherd"
   fi
+elif [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
+  if [ "$force" -eq 1 ] && [ "$dry_run" -eq 0 ]; then
+    printf '%s\n' "$SHIM_BODY" >"$SHIM"
+    chmod +x "$SHIM"
+    echo "replaced .local/bin/shepherd"
+  elif [ "$force" -eq 1 ]; then
+    echo "would replace .local/bin/shepherd"
+    skipped=$((skipped + 1))
+  elif [ "$dry_run" -eq 1 ]; then
+    echo "would skip .local/bin/shepherd (differs, use --force)"
+    skipped=$((skipped + 1))
+  else
+    echo "skipped .local/bin/shepherd (differs, use --force)"
+    skipped=$((skipped + 1))
+  fi
 fi
 
-if [ -d "$BACKUP" ]; then
+if [ "$dry_run" -eq 0 ] && [ -d "$BACKUP" ]; then
   prune_backups
   echo "Backups: $BACKUP (keeping the last $KEEP_BACKUPS)"
 fi

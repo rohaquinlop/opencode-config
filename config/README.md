@@ -26,7 +26,7 @@ Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per pr
 
 - Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
 - Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
-- Default: `xiaomi-token-plan-sgp/mimo-v2.6-pro`. The latest model picked with `/models` becomes the default for new sessions.
+- The model is per-machine: `opencode.json` does not set it, and `./sync.sh` drops a `model` key from the live file. New sessions follow the model last picked with `/models` (the model-tiers sticky default); pick it once after migrating if the first session still shows the old one.
 
 ## Hooks
 
@@ -55,7 +55,7 @@ It generates machine-local files. They are not tracked in this repo:
 
 ## Not included
 
-- `service.json`, logs, session history, credentials, and API keys.
+- `service.json`, `cli.json` (TUI theme, verbosity), logs, session history, credentials, and API keys.
 - Machine-specific paths. The config uses `~` and `$HOME`.
 - TUI status line: use `/cache-stats` or `/cache-graph`.
 - OpenRouter upstream pinning: use the `deepseek` provider directly.

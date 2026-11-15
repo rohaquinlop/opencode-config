@@ -66,7 +66,7 @@ Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per pr
 
 - Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
 - Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
-- The model is per-machine: `config/opencode.json` does not set it, and `./sync.sh` drops a `model` key from the live file. The latest model picked with `/models` becomes the default for new sessions.
+- The model is per-machine: `opencode.json` does not set it, and `./sync.sh` drops a `model` key from the live file. New sessions follow the model last picked with `/models` (the model-tiers sticky default); pick it once after migrating if the first session still shows the old one.
 
 ## Herdr
 
@@ -93,3 +93,5 @@ grep -rniE "ghp_|github_pat_|sk-[A-Za-z0-9]{10,}|AKIA[0-9A-Z]{16}|-----BEGIN|xox
 ```
 
 Then commit with a conventional message.
+
+Run `bash tests/install_test.sh` after changing `install.sh` or `sync.sh`.

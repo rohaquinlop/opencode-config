@@ -112,6 +112,15 @@ ln -s "$REPO_DIR/config/AGENTS.md" "$LIVE/AGENTS.md"
 out="$(run_install)"
 assert_not_contains "a matching symlink is left alone" "$out" "skipped AGENTS.md"
 assert_not_contains "a matching symlink makes no backup" "$out" "replaced AGENTS.md"
+[ -L "$LIVE/AGENTS.md" ] || fail "the matching symlink was replaced"
+assert_eq "the run with a symlink adds no backup" "$(backup_count)" "5"
+
+printf 'custom\n' >"$HOME_DIR/.local/bin/shepherd"
+out="$(run_install)"
+assert_contains "plain run skips a custom shim" "$out" "skipped .local/bin/shepherd"
+assert_eq "custom shim is kept" "$(cat "$HOME_DIR/.local/bin/shepherd")" "custom"
+run_install --force >/dev/null
+assert_contains "force replaces the shim" "$(cat "$HOME_DIR/.local/bin/shepherd")" "plugins/shepherd/scripts/shepherd.sh"
 
 if grep -q '"model"' "$REPO_DIR/config/opencode.json"; then
   fail "config/opencode.json still pins a model"
@@ -125,6 +134,7 @@ printf '{\n  "$schema": "https://opencode.ai/config.json",\n  "model": "x/y",\n 
 printf '{\n  "theme": {\n    "name": "system"\n  }\n}\n' >"$SYNC_LIVE/cli.json"
 SYNC_SRC="$SYNC_LIVE" SYNC_DEST="$SYNC_DEST" bash "$REPO_DIR/sync.sh" >/dev/null
 grep -q '"model"' "$SYNC_DEST/opencode.json" && fail "sync captured the model pin"
+grep -q '"update"' "$SYNC_DEST/opencode.json" || fail "sync dropped the rest of opencode.json"
 [ -e "$SYNC_DEST/cli.json" ] && fail "sync captured cli.json"
 
 if [ "$FAILURES" -gt 0 ]; then
