@@ -6,7 +6,7 @@ Personal OpenCode V2 configuration. Inspired by several agent-driven development
 
 | Path | What |
 | --- | --- |
-| `opencode.json` | default model `xiaomi-token-plan-sgp/mimo-v2.6-pro`, updates disabled |
+| `opencode.json` | updates disabled, experimental flags |
 | `AGENTS.md` | global instructions |
 | `plugins/be-terse/` | appends a style instruction to every root-session prompt |
 | `plugins/shepherd/` | pre-push gate, diagnosis guard, session resume, stop nudge, CLI |
@@ -26,7 +26,7 @@ Subagent models come from `plugins/model-tiers/tiers.json` (tier -> model per pr
 
 - Routine tier (`codebase-scout`, `shepherd-reviewer`): routine reviews and verify calls.
 - Strong tier (`shepherd-reviewer-strong`, `senior-code-reviewer`): round 1 pre-PR calls 2+, plan review calls 2+, independent reviews.
-- Default: `xiaomi-token-plan-sgp/mimo-v2.6-pro`. The latest model picked with `/models` becomes the default for new sessions.
+- The model is per-machine: `opencode.json` does not set it. New sessions are meant to follow the model last picked with `/models` (the model-tiers sticky default); if one still shows the old model after the first run, pick it once.
 
 ## Hooks
 
@@ -55,12 +55,12 @@ It generates machine-local files. They are not tracked in this repo:
 
 ## Not included
 
-- `service.json`, logs, session history, credentials, and API keys.
+- `service.json`, `cli.json` (TUI theme, verbosity), logs, session history, credentials, and API keys.
 - Machine-specific paths. The config uses `~` and `$HOME`.
 - TUI status line: use `/cache-stats` or `/cache-graph`.
 - OpenRouter upstream pinning: use the `deepseek` provider directly.
 
 ## Updating
 
-The live config is a copy of this tree. Edit `~/.config/opencode/`, run
-`~/opencode-config/sync.sh`, review the diff, then commit and push.
+The live config is linked to this tree. Edit `~/.config/opencode/` and the
+change lands here: review `git status`, then commit and push.

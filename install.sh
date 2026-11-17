@@ -1,55 +1,126 @@
 #!/usr/bin/env bash
-# Copy this repository's config/ tree into ~/.config/opencode.
+# Stow this repository's config/ package into the live OpenCode config dir.
 #
-# Existing files are moved to ~/.opencode-config-backup-<timestamp>/ first.
-# Nothing is deleted. Safe to re-run: identical files are skipped.
+# GNU stow links every file in config/ into ~/.config/opencode, the same way a
+# dotfiles checkout works: an edit made live lands in the repo, and git shows
+# it. Files that OpenCode writes itself (cli.json, service.json, theme, model)
+# are ignored, so they stay real files.
 #
-# To capture changes made in the live config back into this repo, run
-# ./sync.sh.
+# A file removed from config/ loses its link on the next run.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC="$REPO_DIR/config"
 DEST="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-BACKUP="$HOME/opencode-config-backup-$(date +%Y%m%d-%H%M%S)"
+SHIM="$HOME/.local/bin/shepherd"
+SHIM_BODY='#!/usr/bin/env bash
+exec bash "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins/shepherd/scripts/shepherd.sh" "$@"'
+IGNORES=(cli.json service.json tui.jsonc '\.log' '\.env' 'herdr-.*' 'herdr-opencode/.*')
+
+if ! command -v stow >/dev/null 2>&1; then
+  echo "install.sh: GNU stow is required (pacman -S stow)" >&2
+  exit 1
+fi
+
+toplevel="$(git -C "$REPO_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$toplevel" ] || [ "$(cd "$toplevel" && pwd -P)" != "$(cd "$REPO_DIR" && pwd -P)" ]; then
+  echo "install.sh: $REPO_DIR is not the root of a git checkout" >&2
+  exit 1
+fi
+
+tmp=""
+changes=0
+
+cleanup() {
+  if [ -n "$tmp" ]; then
+    rm -f "$tmp"
+  fi
+}
+trap cleanup EXIT
+
+if [ -L "$DEST" ]; then
+  echo "install.sh: $DEST is a symlink; link a real directory instead" >&2
+  exit 1
+fi
 
 mkdir -p "$DEST"
 
-backup() {
-  local dest="$1"
-  local rel="${dest#"$DEST"/}"
-  mkdir -p "$(dirname "$BACKUP/$rel")"
-  cp -a "$dest" "$BACKUP/$rel"
-}
+dest_real="$(cd "$DEST" && pwd -P)"
+repo_real="$(cd "$REPO_DIR" && pwd -P)"
+case "$dest_real/" in
+  "$repo_real"/*)
+    echo "install.sh: $DEST is inside $REPO_DIR; refusing to link a tree into itself" >&2
+    exit 1
+    ;;
+esac
 
-while IFS= read -r -d '' src; do
-  rel="${src#"$SRC"/}"
-  dest="$DEST/$rel"
-  mkdir -p "$(dirname "$dest")"
+# Copied files from an older install are replaced by links; a file that differs
+# from the repo is reported, not overwritten.
+conflicts=()
+identical=()
+while IFS= read -r rel; do
+  dest="$DEST/${rel#config/}"
 
-  if [ -L "$dest" ]; then
-    backup "$dest"
-    rm -f "$dest"
-  elif [ -e "$dest" ] && cmp -s "$src" "$dest"; then
-    continue
-  elif [ -e "$dest" ]; then
-    backup "$dest"
-    rm -f "$dest"
+  [ -L "$dest" ] && continue
+  [ -e "$dest" ] || continue
+
+  if cmp -s "$REPO_DIR/$rel" "$dest"; then
+    identical+=("$dest")
+  else
+    conflicts+=("${dest#"$DEST"/}")
   fi
+done < <(git -C "$REPO_DIR" ls-files -- config)
 
-  cp -p "$src" "$dest"
-  echo "installed $rel"
-done < <(find "$SRC" -type f -print0)
-
-# The shepherd CLI wrapper.
-mkdir -p "$HOME/.local/bin"
-cat >"$HOME/.local/bin/shepherd" <<'EOF'
-#!/usr/bin/env bash
-exec bash "$HOME/.config/opencode/plugins/shepherd/scripts/shepherd.sh" "$@"
-EOF
-chmod +x "$HOME/.local/bin/shepherd"
-
-if [ -d "$BACKUP" ]; then
-  echo "Backup: $BACKUP"
+if [ "${#conflicts[@]}" -gt 0 ]; then
+  printf 'install.sh: live file differs from the repo: %s\n' "${conflicts[@]}" >&2
+  echo "Move your change into config/ or delete the live file, then re-run." >&2
+  exit 1
 fi
-echo "Done. Start a new OpenCode session, or run /reload."
+
+if [ "${#identical[@]}" -gt 0 ]; then
+  for dest in "${identical[@]}"; do
+    rm -f "$dest"
+    changes=$((changes + 1))
+  done
+fi
+
+ignore_args=()
+for pattern in "${IGNORES[@]}"; do
+  ignore_args+=("--ignore=$pattern")
+done
+
+links_before="$(find "$DEST" -type l | wc -l | tr -d ' ')"
+stow --dir "$REPO_DIR" --target "$DEST" --restow --no-folding "${ignore_args[@]}" config
+
+# stow leaves a dangling link behind when its repo file is gone.
+while IFS= read -r -d '' link; do
+  target="$(readlink -m "$link")"
+  case "$target" in
+    "$repo_real"/config/*)
+      if [ ! -e "$target" ]; then
+        rm -f "$link"
+        echo "unlinked ${link#"$DEST"/}"
+        changes=$((changes + 1))
+      fi
+      ;;
+  esac
+done < <(find "$DEST" -type l -print0)
+
+links_after="$(find "$DEST" -type l | wc -l | tr -d ' ')"
+if [ "$links_before" != "$links_after" ]; then
+  changes=$((changes + 1))
+fi
+
+if [ -L "$SHIM" ] || [ ! -f "$SHIM" ] || [ "$(cat "$SHIM")" != "$SHIM_BODY" ]; then
+  mkdir -p "$(dirname "$SHIM")"
+  tmp="$SHIM.tmp.$$"
+  printf '%s\n' "$SHIM_BODY" >"$tmp"
+  chmod +x "$tmp"
+  mv -f "$tmp" "$SHIM"
+  tmp=""
+  echo "installed .local/bin/shepherd"
+  changes=$((changes + 1))
+fi
+
+if [ "$changes" -gt 0 ]; then
+  echo "Done. Start a new OpenCode session, or run /reload."
+fi

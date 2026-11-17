@@ -3,6 +3,7 @@ service.json
 .env
 .env.*
 !.env.example
+config/cli.json
 config/plugins/herdr-agent-state.js
 config/herdr-tui-session.js
 config/tui.jsonc
